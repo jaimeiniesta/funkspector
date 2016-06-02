@@ -12,13 +12,13 @@ defmodule ScraperTest do
     end
   end
 
-  # TODO: follow redirections
   test "returns :error for status other than 2xx" do
     for status <- [100, 301, 404, 500] do
       with_mock HTTPoison, [get: fn(_url) -> unsuccessful_scraping(status) end] do
         { :error, results } = scrape("http://example.com")
 
-        assert results == "returned body"
+        assert results.url  == "http://example.com"
+        assert results.body == "returned body"
       end
     end
   end
@@ -28,6 +28,35 @@ defmodule ScraperTest do
       { :ok, results } = scrape("http://example.com")
 
       assert results.body == mocked_html
+    end
+  end
+
+  test "returns the url" do
+    with_mock HTTPoison, [get: fn(_url) -> successful_scraping end] do
+      { :ok, results } = scrape("http://example.com/")
+
+      assert results.url == "http://example.com/"
+    end
+  end
+
+  test "returns the root url" do
+    with_mock HTTPoison, [get: fn(_url) -> successful_scraping end] do
+      for url <- ["http://example.com", "http://example.com/", "http://example.com/faqs?id=2"] do
+        { :ok, results } = scrape(url)
+
+        assert results.root_url == "http://example.com/"
+      end
+    end
+  end
+
+  test "returns the raw links" do
+    with_mock HTTPoison, [get: fn(_url) -> successful_scraping end] do
+      { :ok, results } = scrape("http://example.com")
+
+      assert results.links.raw ==
+        ["/", "/faqs", "contact", "http://example.com/team.html", "https://twitter.com",
+         "https://github.com", "mailto:hello@example.com", "javascript:alert('hi');",
+         "ftp://ftp.example.com"]
     end
   end
 
