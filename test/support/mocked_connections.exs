@@ -34,7 +34,7 @@ defmodule Rocket.MockedConnections do
         <a href="http://example.com/">Root</a>
         <a href="http://example.com/faqs">FAQs</a>
         <a href="http://example.com/contact">Contact</a>
-        <a href="http://example.com/team.html">Team</a>
+        <a href="https://example.com/secure.html">Secure</a>
 
         <!-- External links -->
         <a href="https://twitter.com">Twitter</a>

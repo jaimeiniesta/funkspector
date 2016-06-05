@@ -24,11 +24,14 @@ defmodule ScraperTest do
     end
   end
 
-  test "returns the body" do
+  test "returns the scheme and host" do
     with_mock HTTPoison, [get: fn(_url) -> successful_response end] do
-      { :ok, results } = scrape("http://example.com")
+      for url <- ["http://example.com", "http://example.com/", "http://example.com/faqs?id=2"] do
+        { :ok, results } = scrape(url)
 
-      assert results.body == mocked_html
+        assert results.scheme == "http"
+        assert results.host   == "example.com"
+      end
     end
   end
 
@@ -42,15 +45,52 @@ defmodule ScraperTest do
     end
   end
 
+  test "returns the body" do
+    with_mock HTTPoison, [get: fn(_url) -> successful_response end] do
+      { :ok, results } = scrape("http://example.com")
+
+      assert results.body == mocked_html
+    end
+  end
+
   test "returns the raw links" do
     with_mock HTTPoison, [get: fn(_url) -> successful_response end] do
       { :ok, results } = scrape("http://example.com")
 
       assert results.links.raw ==
         ["http://example.com/", "http://example.com/faqs", "http://example.com/contact",
-         "http://example.com/team.html", "https://twitter.com",
+         "https://example.com/secure.html", "https://twitter.com",
          "https://github.com", "mailto:hello@example.com", "javascript:alert('hi');",
          "ftp://ftp.example.com"]
+    end
+  end
+
+  test "returns the internal links" do
+    with_mock HTTPoison, [get: fn(_url) -> successful_response end] do
+      { :ok, results } = scrape("http://example.com")
+
+      assert results.links.http.internal ==
+        ["http://example.com/", "http://example.com/faqs", "http://example.com/contact",
+         "https://example.com/secure.html"]
+    end
+  end
+
+  test "returns the external links" do
+    with_mock HTTPoison, [get: fn(_url) -> successful_response end] do
+      { :ok, results } = scrape("http://example.com")
+
+      assert results.links.http.external ==
+        ["https://twitter.com", "https://github.com"]
+    end
+  end
+
+  test "returns the non-http links" do
+    with_mock HTTPoison, [get: fn(_url) -> successful_response end] do
+      { :ok, results } = scrape("http://example.com")
+
+      assert results.links.non_http ==
+        ["mailto:hello@example.com", "javascript:alert('hi');",
+        "ftp://ftp.example.com"]
     end
   end
 

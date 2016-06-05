@@ -19,26 +19,41 @@ defmodule Funkspector.Scraper do
   end
 
   defp scraped_data(body, original_url, final_url) do
+    %{scheme: scheme, host: host} = URI.parse(final_url)
+
+    raw_links                          = raw_links(body)
+    { http_links, non_http_links }     = http_and_non_http(raw_links)
+    { internal_links, external_links } = internal_and_external(http_links, host)
+
     %{
-      body: body,
+      scheme: scheme,
+      host: host,
       original_url: original_url,
       final_url: final_url,
-      root_url: root_url(final_url),
+      root_url: "#{scheme}://#{host}/",
+      body: body,
       links: %{
-        raw: raw_links(body)
+        raw: raw_links,
+        http: %{
+          internal: internal_links,
+          external: external_links
+        },
+        non_http: non_http_links
       }
     }
-  end
-
-  defp root_url(url) do
-    %{scheme: scheme, host: host} = URI.parse(url)
-
-    "#{scheme}://#{host}/"
   end
 
   defp raw_links(html) do
     html
     |> Floki.find("a")
     |> Floki.attribute("href")
+  end
+
+  defp http_and_non_http(links) do
+    Enum.partition(links, &(&1 =~ ~r/^http(s)?:\/\//i))
+  end
+
+  defp internal_and_external(links, host) do
+    Enum.partition(links, &(&1 =~ ~r/^http(s)?:\/\/#{host}/i))
   end
 end
