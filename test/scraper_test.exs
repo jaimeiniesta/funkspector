@@ -47,7 +47,8 @@ defmodule ScraperTest do
       { :ok, results } = scrape("http://example.com")
 
       assert results.links.raw ==
-        ["/", "/faqs", "contact", "http://example.com/team.html", "https://twitter.com",
+        ["http://example.com/", "http://example.com/faqs", "http://example.com/contact",
+         "http://example.com/team.html", "https://twitter.com",
          "https://github.com", "mailto:hello@example.com", "javascript:alert('hi');",
          "ftp://ftp.example.com"]
     end

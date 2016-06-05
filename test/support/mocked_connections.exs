@@ -30,12 +30,10 @@ defmodule Rocket.MockedConnections do
         <title>An example page</title>
       </head>
       <body>
-        <!-- Internal relative links -->
-        <a href="/">Root</a>
-        <a href="/faqs">FAQs</a>
-        <a href="contact">Contact</a>
-
         <!-- Internal absolute links -->
+        <a href="http://example.com/">Root</a>
+        <a href="http://example.com/faqs">FAQs</a>
+        <a href="http://example.com/contact">Contact</a>
         <a href="http://example.com/team.html">Team</a>
 
         <!-- External links -->
