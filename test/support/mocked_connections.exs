@@ -33,6 +33,7 @@ defmodule Rocket.MockedConnections do
         <!-- Internal absolute links -->
         <a href="http://example.com/">Root</a>
         <a href="http://example.com/faqs">FAQs</a>
+        <a href="http://example.com/faqs">FAQs (duplicate link that will be ignored)</a>
         <a href="http://example.com/contact">Contact</a>
         <a href="https://example.com/secure.html">Secure</a>
 

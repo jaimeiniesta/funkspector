@@ -47,6 +47,7 @@ defmodule Funkspector.Scraper do
     html
     |> Floki.find("a")
     |> Floki.attribute("href")
+    |> Enum.uniq
   end
 
   defp http_and_non_http(links) do
