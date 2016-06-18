@@ -40,7 +40,7 @@ defmodule Funkspector.Mixfile do
     [
       licenses: ["MIT"],
       maintainers: ["Jaime Iniesta"],
-      links: %{"GitHub" => "https://github.com/sitevalidator/funkspector"}
+      links: %{"GitHub" => "https://github.com/jaimeiniesta/funkspector"}
     ]
   end
 end
