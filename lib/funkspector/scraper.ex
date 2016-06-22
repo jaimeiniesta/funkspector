@@ -66,8 +66,11 @@ defmodule Funkspector.Scraper do
   defp scraped_data(body, original_url, final_url) do
     %{scheme: scheme, host: host} = URI.parse(final_url)
 
+    root_url                           = "#{scheme}://#{host}/"
     raw_links                          = raw_links(body)
-    { http_links, non_http_links }     = http_and_non_http(raw_links)
+    { http_links, non_http_links }     = raw_links
+                                         |> absolutify(root_url)
+                                         |> http_and_non_http
     { internal_links, external_links } = internal_and_external(http_links, host)
 
     %{
@@ -75,7 +78,7 @@ defmodule Funkspector.Scraper do
       host: host,
       original_url: original_url,
       final_url: final_url,
-      root_url: "#{scheme}://#{host}/",
+      root_url: root_url,
       body: body,
       links: %{
         raw: raw_links,
@@ -93,6 +96,11 @@ defmodule Funkspector.Scraper do
     |> Floki.find("a")
     |> Floki.attribute("href")
     |> Enum.uniq
+  end
+
+  defp absolutify(links, root_url) do
+    links
+    |> Enum.map(&(URI.merge(root_url, &1) |> to_string))
   end
 
   defp http_and_non_http(links) do

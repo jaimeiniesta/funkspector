@@ -60,20 +60,33 @@ defmodule ScraperTest do
       { :ok, results } = scrape("http://example.com")
 
       assert results.links.raw ==
-        ["http://example.com/", "http://example.com/faqs", "http://example.com/contact",
-         "https://example.com/secure.html", "https://twitter.com",
-         "https://github.com", "mailto:hello@example.com", "javascript:alert('hi');",
+        ["http://example.com/",
+         "http://example.com/faqs",
+         "http://example.com/contact",
+         "https://example.com/secure.html",
+         "/relative-1",
+         "relative-2",
+         "relative-3?q=some#results",
+         "https://twitter.com",
+         "https://github.com",
+         "mailto:hello@example.com",
+         "javascript:alert('hi');",
          "ftp://ftp.example.com"]
     end
   end
 
-  test "returns the internal links" do
+  test "returns the internal links, including absolute and relative ones" do
     with_mock HTTPoison, [get: fn(_url) -> successful_response end] do
       { :ok, results } = scrape("http://example.com")
 
       assert results.links.http.internal ==
-        ["http://example.com/", "http://example.com/faqs", "http://example.com/contact",
-         "https://example.com/secure.html"]
+        ["http://example.com/",
+         "http://example.com/faqs",
+         "http://example.com/contact",
+         "https://example.com/secure.html",
+         "http://example.com/relative-1",
+         "http://example.com/relative-2",
+         "http://example.com/relative-3?q=some#results"]
     end
   end
 

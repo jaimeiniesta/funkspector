@@ -37,6 +37,11 @@ defmodule Rocket.MockedConnections do
         <a href="http://example.com/contact">Contact</a>
         <a href="https://example.com/secure.html">Secure</a>
 
+        <!-- Internal relative links -->
+        <a href="/relative-1">Relative 1, including root</a>
+        <a href="relative-2">Relative 2, not including root</a>
+        <a href="relative-3?q=some#results">Relative 3, with querystring and anchor</a>
+
         <!-- External links -->
         <a href="https://twitter.com">Twitter</a>
         <a href="https://github.com">Github</a>
