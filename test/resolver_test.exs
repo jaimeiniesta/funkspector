@@ -1,5 +1,6 @@
 defmodule Funkspector.ResolverTest do
   use ExUnit.Case
+  doctest Funkspector.Resolver
 
   import Mock
   import Rocket.MockedConnections

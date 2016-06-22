@@ -1,6 +1,51 @@
 defmodule Funkspector.Scraper do
+  @moduledoc """
+  Provides a method to scrape a given URL.
+  """
+
   alias Funkspector.Resolver
 
+  @doc """
+  Fetches the given URL, follows redirections, and returns the data scraped from its HTML.
+
+  ## Examples
+
+    iex> { :ok, data } = Funkspector.scrape("http://jaimeiniesta.com")
+    iex> data.scheme
+    "http"
+    iex> data.host
+    "jaimeiniesta.com"
+    iex> data.root_url
+    "http://jaimeiniesta.com/"
+    iex> data.links.http.internal
+    ["http://jaimeiniesta.com/",
+     "http://jaimeiniesta.com/about/",
+     "http://jaimeiniesta.com/archive/",
+     "http://jaimeiniesta.com/portfolio/",
+     "http://jaimeiniesta.com",
+     "http://jaimeiniesta.com/articles/questions-about-getting-into-freelancing/",
+     "http://jaimeiniesta.com/articles/building-a-disqus-recent-comments-widget-with-javascript/",
+     "http://jaimeiniesta.com/articles/tips-for-a-new-rails-developer/",
+     "http://jaimeiniesta.com/articles/fifteen-servers/",
+     "http://jaimeiniesta.com/atom.xml"]
+    iex> data.links.http.external
+    ["http://jekyllrb.com",
+     "http://mademistakes.com/so-simple/",
+     "http://twitter.com/jaimeiniesta",
+     "http://facebook.com/jaime.iniesta.7",
+     "http://plus.google.com/+jaimeiniesta",
+     "http://linkedin.com/in/jaimeiniesta",
+     "http://instagram.com/jaimeiniesta",
+     "http://www.flickr.com/photos/jaimeiniesta", "http://github.com/jaimeiniesta"]
+    iex> data.links.non_http
+    ["mailto:jaimeiniesta@gmail.com"]
+
+    iex> { :ok, data } = Funkspector.scrape("http://github.com")
+    iex> data.original_url
+    "http://github.com"
+    iex> data.final_url
+    "https://github.com/"
+  """
   def scrape(original_url) do
     case Resolver.resolve(original_url) do
       { :ok, final_url, response } ->
@@ -10,11 +55,11 @@ defmodule Funkspector.Scraper do
     end
   end
 
-  def handle_response(response = %{status_code: status, body: _body }, original_url, _final_url) when not status in 200..299 do
+  defp handle_response(response = %{status_code: status, body: _body }, original_url, _final_url) when not status in 200..299 do
     { :error, original_url, response }
   end
 
-  def handle_response(%{status_code: status, body: body }, original_url, final_url) when status in 200..299 do
+  defp handle_response(%{status_code: status, body: body }, original_url, final_url) when status in 200..299 do
     { :ok, scraped_data(body, original_url, final_url) }
   end
 

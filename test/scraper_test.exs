@@ -1,5 +1,7 @@
 defmodule ScraperTest do
   use ExUnit.Case
+  doctest Funkspector.Scraper
+
   import Mock
   import Rocket.MockedConnections
 
