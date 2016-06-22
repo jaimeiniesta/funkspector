@@ -31,7 +31,7 @@ defmodule Funkspector.Mixfile do
   defp deps do
     [
       { :httpoison, "~> 0.8" },
-      { :floki, "~> 0.8.1" },
+      { :floki, "~> 0.9" },
       { :mock,      "~> 0.1.1", only: :test}
     ]
   end
