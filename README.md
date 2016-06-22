@@ -1,6 +1,8 @@
 # Funkspector
 
-**TODO: Add description**
+Web page inspector for Elixir.
+
+[![Deps Status](https://beta.hexfaktor.org/badge/all/github/jaimeiniesta/funkspector.svg)](https://beta.hexfaktor.org/github/jaimeiniesta/funkspector)
 
 ## Installation
 
@@ -17,4 +19,3 @@ If [available in Hex](https://hex.pm/docs/publish), the package can be installed
         def application do
           [applications: [:funkspector]]
         end
-
