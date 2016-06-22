@@ -7,9 +7,10 @@ defmodule Funkspector.Resolver do
   Given a URL, it will follow the redirections and return the final URL and the final response.
 
   ## Examples
-  iex> { :ok, final_url, _response } = Funkspector.Resolver.resolve("http://github.com")
-  iex> final_url
-  "https://github.com/"
+
+      iex> { :ok, final_url, _response } = Funkspector.Resolver.resolve("http://github.com")
+      iex> final_url
+      "https://github.com/"
   """
   def resolve(url, max_redirects \\ 5, response \\ %{})
   def resolve(url, max_redirects, response) when max_redirects < 1, do: {:ok, url, response}
