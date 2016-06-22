@@ -17,9 +17,10 @@ defmodule Rocket.MockedConnections do
 
   def redirect_from(url) do
     case url do
-      "http://example.com/redirect/1" -> redirection_response("http://example.com/redirect/2")
-      "http://example.com/redirect/2" -> redirection_response("http://example.com/redirect/3")
-      "http://example.com/redirect/3" -> successful_response
+      "http://example.com/redirect/1"        -> redirection_response("http://example.com/redirect/2")
+      "http://example.com/redirect/2"        -> redirection_response("http://example.com/redirect/3")
+      "http://example.com/redirect/3"        -> successful_response
+      "http://example.com/redirect/relative" -> redirection_response("/redirect/3")
     end
   end
 

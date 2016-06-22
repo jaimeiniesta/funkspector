@@ -12,6 +12,12 @@ defmodule Funkspector.ResolverTest do
     end
   end
 
+  test "follows relative redirections" do
+    with_mock HTTPoison, [get: fn(url) -> redirect_from(url) end] do
+      {:ok, "http://example.com/redirect/3", _} = resolve("http://example.com/redirect/relative")
+    end
+  end
+
   test "keeps URLs that dont redirect" do
     with_mock HTTPoison, [get: fn(_url) -> successful_response end] do
       {:ok, "http://example.com/", _} = resolve("http://example.com/")
