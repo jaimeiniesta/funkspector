@@ -1,6 +1,6 @@
-defmodule Funkspector.Scraper do
+defmodule Funkspector.PageScraper do
   @moduledoc """
-  Provides a method to scrape a given URL.
+  Provides a method to scrape a page, given its URL.
   """
 
   alias Funkspector.Resolver
@@ -10,7 +10,7 @@ defmodule Funkspector.Scraper do
 
   ## Examples
 
-      iex> { :ok, data } = Funkspector.scrape("http://jaimeiniesta.com")
+      iex> { :ok, data } = Funkspector.PageScraper.scrape("http://jaimeiniesta.com")
       iex> data.scheme
       "http"
       iex> data.host
@@ -40,7 +40,7 @@ defmodule Funkspector.Scraper do
       iex> data.links.non_http
       ["mailto:jaimeiniesta@gmail.com"]
 
-      iex> { :ok, data } = Funkspector.scrape("http://github.com")
+      iex> { :ok, data } = Funkspector.PageScraper.scrape("http://github.com")
       iex> data.original_url
       "http://github.com"
       iex> data.final_url

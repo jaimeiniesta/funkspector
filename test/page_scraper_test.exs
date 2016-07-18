@@ -1,11 +1,11 @@
-defmodule ScraperTest do
+defmodule PageScraperTest do
   use ExUnit.Case
-  doctest Funkspector.Scraper
+  doctest Funkspector.PageScraper
 
   import Mock
   import Rocket.MockedConnections
 
-  import Funkspector.Scraper, only: [ scrape: 1 ]
+  import Funkspector.PageScraper, only: [ scrape: 1 ]
 
   test "returns :ok for status in 2xx" do
     for status <- 200..201 do
