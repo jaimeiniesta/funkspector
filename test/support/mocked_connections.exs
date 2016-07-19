@@ -7,6 +7,10 @@ defmodule Rocket.MockedConnections do
     { :ok, %{ status_code: status, body: mocked_html } }
   end
 
+  def successful_response_for_sitemap(status \\ 200) do
+    { :ok, %{ status_code: status, body: mocked_xml } }
+  end
+
   def redirection_response(to_url) do
     { :ok, %{ status_code: 301, headers: [ {"Content-length", "0"}, { "Location", to_url }, {"Content-length", "0"} ] } }
   end
@@ -53,6 +57,23 @@ defmodule Rocket.MockedConnections do
         <a href="ftp://ftp.example.com">FTP</a>
       </body>
     </html>
+    """
+  end
+
+  def mocked_xml do
+    """
+    <?xml version="1.0" encoding="UTF-8"?>
+    <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+       <url>
+          <loc>/</loc>
+       </url>
+       <url>
+          <loc>/faqs</loc>
+       </url>
+       <url>
+          <loc>/about</loc>
+       </url>
+    </urlset>
     """
   end
 end

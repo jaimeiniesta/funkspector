@@ -3,6 +3,7 @@ defmodule Funkspector.PageScraper do
   Provides a method to scrape a page, given its URL.
   """
 
+  import Funkspector.Utils
   alias Funkspector.Resolver
 
   @doc """
@@ -96,11 +97,6 @@ defmodule Funkspector.PageScraper do
     |> Floki.find("a")
     |> Floki.attribute("href")
     |> Enum.uniq
-  end
-
-  defp absolutify(links, root_url) do
-    links
-    |> Enum.map(&(URI.merge(root_url, &1) |> to_string))
   end
 
   defp http_and_non_http(links) do
