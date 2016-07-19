@@ -23,7 +23,11 @@ defmodule Funkspector.SitemapScraper do
   end
 
   defp handle_response(%{status_code: status, body: body }, original_url, final_url) when status in 200..299 do
-    { :ok, scraped_data(body, original_url, final_url) }
+    try do
+      { :ok, scraped_data(body, original_url, final_url) }
+    catch
+      :exit, reason -> { :error, original_url, %{ malformed_xml: reason } }
+    end
   end
 
   defp scraped_data(body, original_url, final_url) do

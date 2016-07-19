@@ -11,6 +11,10 @@ defmodule Rocket.MockedConnections do
     { :ok, %{ status_code: status, body: mocked_xml } }
   end
 
+  def malformed_xml_response(status \\ 200) do
+    { :ok, %{ status_code: status, body: malformed_xml } }
+  end
+
   def redirection_response(to_url) do
     { :ok, %{ status_code: 301, headers: [ {"Content-length", "0"}, { "Location", to_url }, {"Content-length", "0"} ] } }
   end
@@ -75,5 +79,9 @@ defmodule Rocket.MockedConnections do
        </url>
     </urlset>
     """
+  end
+
+  def malformed_xml do
+    "<xml>"
   end
 end

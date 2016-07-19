@@ -46,13 +46,13 @@ The SitemapScraper also returns:
 
 ## Error response
 
-In case of error, Funkspector will return the `original_url` and the response from the server:
+In case of error, Funkspector will return the `original_url` and the reason from the server:
 
 ```elixir
 case Funkspector.page_scrape("http://example.com") do
   { :ok, data } ->
     IO.inspect(data)
-  { :error, url, response } ->
+  { :error, url, reason } ->
     IO.puts "Could not scrape #{url} because of #{reason}"
 end
 ```
