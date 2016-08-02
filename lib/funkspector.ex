@@ -22,14 +22,11 @@ defmodule Funkspector do
   ## Examples
 
       iex> { :ok, data } = Funkspector.sitemap_scrape("http://validationhell.com/sitemap.xml")
-      iex> data.locs
-      ["http://validationhell.com/", "http://validationhell.com/pages/faqs", "http://validationhell.com/pages/agent",
-       "http://validationhell.com/pages/how", "http://validationhell.com/pages/why",
-       "http://validationhell.com/pages/circle/1", "http://validationhell.com/pages/circle/2",
-       "http://validationhell.com/pages/circle/3", "http://validationhell.com/pages/circle/4",
-       "http://validationhell.com/pages/circle/5", "http://validationhell.com/pages/circle/6",
-       "http://validationhell.com/pages/circle/7", "http://validationhell.com/pages/circle/8",
-       "http://validationhell.com/pages/circle/9", "http://validationhell.com/pages/abyss/1"]
+      iex> length data.locs
+      1006
+      iex> [ first | _ ] = data.locs
+      iex> first
+      "http://validationhell.com/"
   """
   def sitemap_scrape(url) do
     Funkspector.SitemapScraper.scrape(url)
