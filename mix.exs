@@ -3,7 +3,7 @@ defmodule Funkspector.Mixfile do
 
   def project do
     [app: :funkspector,
-     version: "0.1.1",
+     version: "0.1.2",
      elixir: "~> 1.3",
      description: "Web page inspector for Elixir",
      package: package,
@@ -32,7 +32,7 @@ defmodule Funkspector.Mixfile do
     [
       { :httpoison, "~> 0.9" },
       { :floki,     "~> 0.9" },
-      { :quinn,     "~> 0.0.4" },
+      { :quinn,     github: "nhu313/Quinn" },
       { :mock,      "~> 0.1", only: :test},
       { :ex_doc,    ">= 0.0.0", only: :dev }
     ]
