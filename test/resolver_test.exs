@@ -34,6 +34,12 @@ defmodule Funkspector.ResolverTest do
     end
   end
 
+  test "follows lowercase location key" do
+    with_mock HTTPoison, [get: fn(url) -> redirect_from(url) end] do
+      {:ok, "http://example.com/redirect/3", _} = resolve("http://example.com/redirect/lowercase-location")
+    end
+  end
+
   test "returns :error if host does not exist" do
     with_mock HTTPoison, [get: fn(url) -> http_error_response(url) end] do
       {:error, "http://this_does_not_exist.com", %HTTPoison.Error{id: nil, reason: :nxdomain}} = resolve("http://this_does_not_exist.com")

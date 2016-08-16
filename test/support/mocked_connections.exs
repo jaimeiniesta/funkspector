@@ -15,8 +15,8 @@ defmodule Rocket.MockedConnections do
     { :ok, %{ status_code: status, body: malformed_xml } }
   end
 
-  def redirection_response(to_url) do
-    { :ok, %{ status_code: 301, headers: [ {"Content-length", "0"}, { "Location", to_url }, {"Content-length", "0"} ] } }
+  def redirection_response(location_key, to_url) do
+    { :ok, %{ status_code: 301, headers: [ {"Content-length", "0"}, { location_key, to_url }, {"Content-length", "0"} ] } }
   end
 
   def http_error_response(url) do
@@ -25,10 +25,11 @@ defmodule Rocket.MockedConnections do
 
   def redirect_from(url) do
     case url do
-      "http://example.com/redirect/1"        -> redirection_response("http://example.com/redirect/2")
-      "http://example.com/redirect/2"        -> redirection_response("http://example.com/redirect/3")
-      "http://example.com/redirect/3"        -> successful_response
-      "http://example.com/redirect/relative" -> redirection_response("/redirect/3")
+      "http://example.com/redirect/1"                  -> redirection_response("Location", "http://example.com/redirect/2")
+      "http://example.com/redirect/2"                  -> redirection_response("Location", "http://example.com/redirect/3")
+      "http://example.com/redirect/3"                  -> successful_response
+      "http://example.com/redirect/relative"           -> redirection_response("Location", "/redirect/3")
+      "http://example.com/redirect/lowercase-location" -> redirection_response("location", "/redirect/3")
     end
   end
 
