@@ -90,6 +90,21 @@ defmodule PageScraperTest do
     end
   end
 
+  test "relative links are calculated from the base url" do
+    with_mock HTTPoison, [get: fn(_url) -> successful_response end] do
+      { :ok, results } = scrape("http://example.com/a/nested/directory/")
+
+      assert results.links.http.internal ==
+        ["http://example.com/",
+         "http://example.com/faqs",
+         "http://example.com/contact",
+         "https://example.com/secure.html",
+         "http://example.com/relative-1",
+         "http://example.com/a/nested/directory/relative-2",
+         "http://example.com/a/nested/directory/relative-3?q=some#results"]
+    end
+  end
+
   test "returns the external links" do
     with_mock HTTPoison, [get: fn(_url) -> successful_response end] do
       { :ok, results } = scrape("http://example.com")

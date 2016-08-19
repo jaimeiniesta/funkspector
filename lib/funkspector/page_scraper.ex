@@ -70,7 +70,7 @@ defmodule Funkspector.PageScraper do
     root_url                           = "#{scheme}://#{host}/"
     raw_links                          = raw_links(body)
     { http_links, non_http_links }     = raw_links
-                                         |> absolutify(root_url)
+                                         |> absolutify(final_url)
                                          |> http_and_non_http
     { internal_links, external_links } = internal_and_external(http_links, host)
 

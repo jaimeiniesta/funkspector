@@ -11,8 +11,8 @@ defmodule Funkspector.Utils do
       iex> Funkspector.Utils.absolutify ["/faqs?section=legal", "/about"], "http://example.com"
       ["http://example.com/faqs?section=legal", "http://example.com/about"]
   """
-  def absolutify(links, root_url) do
+  def absolutify(links, base_url) do
     links
-    |> Enum.map(&(URI.merge(root_url, &1) |> to_string))
+    |> Enum.map(&(URI.merge(base_url, &1) |> to_string))
   end
 end
