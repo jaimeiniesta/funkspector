@@ -18,17 +18,35 @@ defmodule Funkspector.Resolver do
     case HTTPoison.get(url) do
       {:ok, response = %{status_code: status, headers: headers}} when status in 300..399 ->
         to = URI.merge(url, location_from(headers)) |> to_string
-        resolve(to, max_redirects - 1, response)
+        resolve(to, max_redirects - 1, deflated(response))
       {:ok, response = %{status_code: status}} when (status < 200) or (status >= 400) ->
-        {:error, url, response}
+        {:error, url, deflated(response)}
       {:error, url, response} ->
-        {:error, url, response}
+        {:error, url, deflated(response)}
       {status, response} ->
-        {status, url, response}
+        {status, url, deflated(response)}
     end
   end
 
   defp location_from(headers) do
     Enum.into(headers, %{})["Location"] || Enum.into(headers, %{})["location"]
+  end
+
+  # Deflates the body if it was gzip-compressed. Temporary until HTTPoison handles this:
+  # https://github.com/edgurgel/httpoison/issues/81
+  #
+  defp deflated(response) do
+    gzipped = Map.has_key?(response, :headers) && Enum.any?(response.headers, fn(kv) ->
+      case kv do
+        {"Content-Encoding", "gzip"} -> true
+        _ -> false
+      end
+    end)
+
+    if gzipped do
+      Map.put response, :body, :zlib.gunzip(response.body)
+    else
+      response
+    end
   end
 end
