@@ -39,7 +39,7 @@ defmodule SitemapScraperTest do
 
   test "returns :error if the XML could not be parsed" do
     with_mock HTTPoison, [get: fn(_url, _headers, _options) -> malformed_xml_response end] do
-      { :error, _url, %{ malformed_xml: {:fatal, {:unexpected_end, {:file, :file_name_unknown}, {:line, 1}, {:col, 6}}} } } = scrape("http://example.com/bad.xml")
+      { :error, _url, %{ malformed_xml: { :fatal, { :unexpected_end, { :file, :file_name_unknown }, { :line, 1 }, { :col, 6 } } } } } = scrape("http://example.com/bad.xml")
     end
   end
 end

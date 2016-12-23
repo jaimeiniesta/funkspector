@@ -18,15 +18,15 @@ defmodule Funkspector.Resolver do
     # SSL cert verification disabled until this bug is solved:
     # https://github.com/edgurgel/httpoison/issues/93
     case HTTPoison.get(url, [], hackney: [:insecure]) do
-      {:ok, response = %{status_code: status, headers: headers}} when status in 300..399 ->
+      { :ok, response = %{ status_code: status, headers: headers } } when status in 300..399 ->
         to = URI.merge(url, location_from(headers)) |> to_string
         resolve(to, max_redirects - 1, deflated(response))
-      {:ok, response = %{status_code: status}} when (status < 200) or (status >= 400) ->
-        {:error, url, deflated(response)}
-      {:error, url, response} ->
-        {:error, url, deflated(response)}
-      {status, response} ->
-        {status, url, deflated(response)}
+      { :ok, response = %{ status_code: status } } when (status < 200) or (status >= 400) ->
+        { :error, url, deflated(response) }
+      { :error, url, response } ->
+        { :error, url, deflated(response) }
+      { status, response } ->
+        { status, url, deflated(response) }
     end
   end
 
@@ -40,7 +40,7 @@ defmodule Funkspector.Resolver do
   defp deflated(response) do
     gzipped = Map.has_key?(response, :headers) && Enum.any?(response.headers, fn(kv) ->
       case kv do
-        {"Content-Encoding", "gzip"} -> true
+        { "Content-Encoding", "gzip" } -> true
         _ -> false
       end
     end)

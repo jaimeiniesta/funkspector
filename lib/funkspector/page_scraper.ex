@@ -56,11 +56,11 @@ defmodule Funkspector.PageScraper do
     end
   end
 
-  defp handle_response(response = %{status_code: status, body: _body }, original_url, _final_url) when not status in 200..299 do
+  defp handle_response(response = %{ status_code: status, body: _body }, original_url, _final_url) when not status in 200..299 do
     { :error, original_url, response }
   end
 
-  defp handle_response(%{status_code: status, body: body }, original_url, final_url) when status in 200..299 do
+  defp handle_response(%{ status_code: status, body: body }, original_url, final_url) when status in 200..299 do
     { :ok, scraped_data(body, original_url, final_url) }
   end
 

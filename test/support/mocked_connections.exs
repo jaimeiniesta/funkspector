@@ -20,7 +20,7 @@ defmodule Rocket.MockedConnections do
   end
 
   def http_error_response(url) do
-    { :error, url, %HTTPoison.Error{id: nil, reason: :nxdomain} }
+    { :error, url, %HTTPoison.Error{ id: nil, reason: :nxdomain } }
   end
 
   def redirect_from(url) do
