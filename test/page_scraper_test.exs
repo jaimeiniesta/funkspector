@@ -9,7 +9,7 @@ defmodule PageScraperTest do
 
   test "returns :ok for status in 2xx" do
     for status <- 200..201 do
-      with_mock HTTPoison, [get: fn(_url) -> successful_response(status) end] do
+      with_mock HTTPoison, [get: fn(_url, _headers, _options) -> successful_response(status) end] do
         { :ok, _results } = scrape("http://example.com")
       end
     end
@@ -17,7 +17,7 @@ defmodule PageScraperTest do
 
   test "returns :error for status other than 2xx" do
     for status <- [100, 301, 404, 500] do
-      with_mock HTTPoison, [get: fn(_url) -> unsuccessful_response(status) end] do
+      with_mock HTTPoison, [get: fn(_url, _headers, _options) -> unsuccessful_response(status) end] do
         { :error, url, response } = scrape("http://example.com")
 
         assert url  == "http://example.com"
@@ -27,7 +27,7 @@ defmodule PageScraperTest do
   end
 
   test "returns the scheme and host" do
-    with_mock HTTPoison, [get: fn(_url) -> successful_response end] do
+    with_mock HTTPoison, [get: fn(_url, _headers, _options) -> successful_response end] do
       for url <- ["http://example.com", "http://example.com/", "http://example.com/faqs?id=2"] do
         { :ok, results } = scrape(url)
 
@@ -38,7 +38,7 @@ defmodule PageScraperTest do
   end
 
   test "returns the root url" do
-    with_mock HTTPoison, [get: fn(_url) -> successful_response end] do
+    with_mock HTTPoison, [get: fn(_url, _headers, _options) -> successful_response end] do
       for url <- ["http://example.com", "http://example.com/", "http://example.com/faqs?id=2"] do
         { :ok, results } = scrape(url)
 
@@ -48,7 +48,7 @@ defmodule PageScraperTest do
   end
 
   test "returns the body" do
-    with_mock HTTPoison, [get: fn(_url) -> successful_response end] do
+    with_mock HTTPoison, [get: fn(_url, _headers, _options) -> successful_response end] do
       { :ok, results } = scrape("http://example.com")
 
       assert results.body == mocked_html
@@ -56,7 +56,7 @@ defmodule PageScraperTest do
   end
 
   test "returns the raw links" do
-    with_mock HTTPoison, [get: fn(_url) -> successful_response end] do
+    with_mock HTTPoison, [get: fn(_url, _headers, _options) -> successful_response end] do
       { :ok, results } = scrape("http://example.com")
 
       assert results.links.raw ==
@@ -76,7 +76,7 @@ defmodule PageScraperTest do
   end
 
   test "returns the internal links, including absolute and relative ones" do
-    with_mock HTTPoison, [get: fn(_url) -> successful_response end] do
+    with_mock HTTPoison, [get: fn(_url, _headers, _options) -> successful_response end] do
       { :ok, results } = scrape("http://example.com")
 
       assert results.links.http.internal ==
@@ -91,7 +91,7 @@ defmodule PageScraperTest do
   end
 
   test "relative links are calculated from the base url" do
-    with_mock HTTPoison, [get: fn(_url) -> successful_response end] do
+    with_mock HTTPoison, [get: fn(_url, _headers, _options) -> successful_response end] do
       { :ok, results } = scrape("http://example.com/a/nested/directory/")
 
       assert results.links.http.internal ==
@@ -106,7 +106,7 @@ defmodule PageScraperTest do
   end
 
   test "returns the external links" do
-    with_mock HTTPoison, [get: fn(_url) -> successful_response end] do
+    with_mock HTTPoison, [get: fn(_url, _headers, _options) -> successful_response end] do
       { :ok, results } = scrape("http://example.com")
 
       assert results.links.http.external ==
@@ -115,7 +115,7 @@ defmodule PageScraperTest do
   end
 
   test "returns the non-http links" do
-    with_mock HTTPoison, [get: fn(_url) -> successful_response end] do
+    with_mock HTTPoison, [get: fn(_url, _headers, _options) -> successful_response end] do
       { :ok, results } = scrape("http://example.com")
 
       assert results.links.non_http ==
@@ -125,7 +125,7 @@ defmodule PageScraperTest do
   end
 
   test "follows redirections" do
-    with_mock HTTPoison, [get: fn(url) -> redirect_from(url) end] do
+    with_mock HTTPoison, [get: fn(url, _headers, _options) -> redirect_from(url) end] do
       { :ok, results } = scrape("http://example.com/redirect/1")
 
       assert results.original_url == "http://example.com/redirect/1"
