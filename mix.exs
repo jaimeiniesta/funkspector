@@ -32,7 +32,7 @@ defmodule Funkspector.Mixfile do
     [
       { :httpoison, "~> 0.9" },
       { :floki,     "~> 0.9" },
-      { :quinn,     "~> 0.0.4" },
+      { :quinn,     "~> 1.0.0" },
       { :mock,      "~> 0.1", only: :test},
       { :ex_doc,    ">= 0.0.0", only: :dev }
     ]
