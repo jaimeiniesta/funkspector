@@ -23,11 +23,7 @@ defmodule Funkspector.SitemapScraper do
   end
 
   defp handle_response(%{ status_code: status, body: body }, original_url, final_url) when status in 200..299 do
-    try do
-      { :ok, scraped_data(body, original_url, final_url) }
-    catch
-      :exit, reason -> { :error, original_url, %{ malformed_xml: reason } }
-    end
+    { :ok, scraped_data(body, original_url, final_url) }
   end
 
   defp scraped_data(body, original_url, final_url) do
@@ -49,9 +45,8 @@ defmodule Funkspector.SitemapScraper do
 
   defp raw_locs(xml) do
     xml
-    |> Quinn.parse
-    |> Quinn.find(:loc)
-    |> Enum.map(&(&1[:value]))
+    |> Friendly.find("loc")
+    |> Enum.map(&(&1[:text]))
     |> List.flatten
     |> Enum.uniq
   end

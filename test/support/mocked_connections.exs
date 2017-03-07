@@ -47,6 +47,10 @@ defmodule Rocket.MockedConnections do
         <a href="http://example.com/contact">Contact</a>
         <a href="https://example.com/secure.html">Secure</a>
 
+        <!--
+        <a href="https://example.com/not-included.html">Commented out should not be included</a>
+        -->
+
         <!-- Internal relative links -->
         <a href="/relative-1">Relative 1, including root</a>
         <a href="relative-2">Relative 2, not including root</a>
@@ -78,6 +82,11 @@ defmodule Rocket.MockedConnections do
        <url>
           <loc>/about</loc>
        </url>
+       <!--
+       <url>
+          <loc>/commented-out-should-not-be-included</loc>
+       </url>
+       -->
     </urlset>
     """
   end
