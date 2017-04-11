@@ -17,7 +17,10 @@ defmodule Funkspector.Resolver do
   def resolve(url, max_redirects, _response) do
     # SSL cert verification disabled until this bug is solved:
     # https://github.com/edgurgel/httpoison/issues/93
-    case HTTPoison.get(url, [], hackney: [:insecure]) do
+    #
+    # Also, we set the SSL version to fix this:
+    # http://campezzi.ghost.io/httpoison-ssl-connection-closed/
+    case HTTPoison.get(url, [], hackney: [:insecure], ssl: [versions: [:"tlsv1.2"]]) do
       { :ok, response = %{ status_code: status, headers: headers } } when status in 300..399 ->
         to = URI.merge(url, location_from(headers)) |> to_string
         resolve(to, max_redirects - 1, deflated(response))
