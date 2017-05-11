@@ -43,7 +43,8 @@ defmodule Funkspector.Resolver do
   defp deflated(response) do
     gzipped = Map.has_key?(response, :headers) && Enum.any?(response.headers, fn(kv) ->
       case kv do
-        { "Content-Encoding", "gzip" } -> true
+        { "Content-Encoding", "gzip" }   -> true
+        { "Content-Encoding", "x-gzip" } -> true
         _ -> false
       end
     end)
