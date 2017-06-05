@@ -4,15 +4,15 @@ defmodule Rocket.MockedConnections do
   end
 
   def successful_response(status \\ 200) do
-    { :ok, %{ status_code: status, body: mocked_html } }
+    { :ok, %{ status_code: status, body: mocked_html() } }
   end
 
   def successful_response_for_sitemap(status \\ 200) do
-    { :ok, %{ status_code: status, body: mocked_xml } }
+    { :ok, %{ status_code: status, body: mocked_xml() } }
   end
 
   def malformed_xml_response(status \\ 200) do
-    { :ok, %{ status_code: status, body: malformed_xml } }
+    { :ok, %{ status_code: status, body: malformed_xml() } }
   end
 
   def redirection_response(location_key, to_url) do
@@ -27,13 +27,13 @@ defmodule Rocket.MockedConnections do
     case url do
       "http://example.com/redirect/1"                  -> redirection_response("Location", "http://example.com/redirect/2")
       "http://example.com/redirect/2"                  -> redirection_response("Location", "http://example.com/redirect/3")
-      "http://example.com/redirect/3"                  -> successful_response
+      "http://example.com/redirect/3"                  -> successful_response()
       "http://example.com/redirect/relative"           -> redirection_response("Location", "/redirect/3")
       "http://example.com/redirect/lowercase-location" -> redirection_response("location", "/redirect/3")
     end
   end
 
-  def mocked_html do
+  def mocked_html() do
     """
     <html>
       <head>

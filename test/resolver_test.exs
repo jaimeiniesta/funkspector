@@ -19,7 +19,7 @@ defmodule Funkspector.ResolverTest do
   end
 
   test "keeps URLs that dont redirect" do
-    with_mock HTTPoison, [get: fn(_url, _headers, _options) -> successful_response end] do
+    with_mock HTTPoison, [get: fn(_url, _headers, _options) -> successful_response() end] do
       { :ok, "http://example.com/", _ } = resolve("http://example.com/")
     end
   end

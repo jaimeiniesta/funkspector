@@ -12,7 +12,7 @@ defmodule Funkspector.Resolver do
       iex> final_url
       "https://github.com/"
   """
-  def resolve(url, max_redirects \\ 5, response \\ %{}, options \\ default_options)
+  def resolve(url, max_redirects \\ 5, response \\ %{}, options \\ default_options())
   def resolve(url, max_redirects, response, _options) when max_redirects < 1, do: {:ok, url, response}
   def resolve(url, max_redirects, _response, options) do
     # SSL cert verification disabled until this bug is solved:
