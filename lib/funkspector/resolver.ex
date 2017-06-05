@@ -12,22 +12,38 @@ defmodule Funkspector.Resolver do
       iex> final_url
       "https://github.com/"
   """
-  def resolve(url, max_redirects \\ 5, response \\ %{})
-  def resolve(url, max_redirects, response) when max_redirects < 1, do: {:ok, url, response}
-  def resolve(url, max_redirects, _response) do
+  def resolve(url, max_redirects \\ 5, response \\ %{}, options \\ default_options)
+  def resolve(url, max_redirects, response, _options) when max_redirects < 1, do: {:ok, url, response}
+  def resolve(url, max_redirects, _response, options) do
     # SSL cert verification disabled until this bug is solved:
     # https://github.com/edgurgel/httpoison/issues/93
-    case HTTPoison.get(url, ["User-Agent": user_agent()], hackney: [:insecure], recv_timeout: 25_000) do
+    case HTTPoison.get(url, ["User-Agent": user_agent()], options) do
       { :ok, response = %{ status_code: status, headers: headers } } when status in 300..399 ->
         to = URI.merge(url, location_from(headers)) |> to_string
         resolve(to, max_redirects - 1, deflated(response))
+
       { :ok, response = %{ status_code: status } } when (status < 200) or (status >= 400) ->
         { :error, url, deflated(response) }
+
+      # In case of SSL connection closed, retry setting a TLS version, as per this post:
+      # http://campezzi.ghost.io/httpoison-ssl-connection-closed/
+      {:error, response = %HTTPoison.Error{id: nil, reason: :closed}} ->
+        if is_nil(options[:ssl]) do
+          resolve(url, max_redirects - 1, response, options ++ [ssl: [versions: [:"tlsv1.2"]]])
+        else
+          { :error, url, deflated(response) }
+        end
+
       { :error, url, response } ->
         { :error, url, deflated(response) }
+
       { status, response } ->
         { status, url, deflated(response) }
     end
+  end
+
+  defp default_options do
+    [hackney: [:insecure], recv_timeout: 25_000]
   end
 
   defp location_from(headers) do
