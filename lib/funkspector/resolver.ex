@@ -17,7 +17,7 @@ defmodule Funkspector.Resolver do
   def resolve(url, max_redirects, _response) do
     # SSL cert verification disabled until this bug is solved:
     # https://github.com/edgurgel/httpoison/issues/93
-    case HTTPoison.get(url, [], hackney: [:insecure], recv_timeout: 25_000) do
+    case HTTPoison.get(url, ["User-Agent": user_agent()], hackney: [:insecure], recv_timeout: 25_000) do
       { :ok, response = %{ status_code: status, headers: headers } } when status in 300..399 ->
         to = URI.merge(url, location_from(headers)) |> to_string
         resolve(to, max_redirects - 1, deflated(response))
@@ -51,5 +51,10 @@ defmodule Funkspector.Resolver do
     else
       response
     end
+  end
+
+  # Provides a browser-like user agent
+  defp user_agent do
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/29.0.1547.76 Safari/537.36"
   end
 end
