@@ -3,6 +3,13 @@ defmodule Funkspector.Resolver do
   Provides a method to follow URL redirections, returning the final URL.
   """
 
+  # In case of these errors related with SSL we'll retry setting a TLS version, as per this post:
+  # http://campezzi.ghost.io/httpoison-ssl-connection-closed/
+  @reasons_to_retry_with_ssl_version [
+    %HTTPoison.Error{id: nil, reason: :closed},
+    %HTTPoison.Error{id: nil, reason: {:tls_alert, 'handshake failure'}}
+  ]
+
   @doc """
   Given a URL, it will follow the redirections and return the final URL and the final response.
 
@@ -25,9 +32,7 @@ defmodule Funkspector.Resolver do
       { :ok, response = %{ status_code: status } } when (status < 200) or (status >= 400) ->
         { :error, url, deflated(response) }
 
-      # In case of SSL connection closed, retry setting a TLS version, as per this post:
-      # http://campezzi.ghost.io/httpoison-ssl-connection-closed/
-      {:error, response = %HTTPoison.Error{id: nil, reason: :closed}} ->
+      {:error, response} when response in @reasons_to_retry_with_ssl_version ->
         if is_nil(options[:ssl]) do
           resolve(url, max_redirects - 1, response, options ++ [ssl: [versions: [:"tlsv1.2"]]])
         else
