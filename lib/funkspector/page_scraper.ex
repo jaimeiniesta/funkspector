@@ -65,12 +65,14 @@ defmodule Funkspector.PageScraper do
   end
 
   defp scraped_data(body, original_url, final_url) do
+    base_url = base_href(body) || final_url
+
     %{scheme: scheme, host: host} = URI.parse(final_url)
 
     root_url                           = "#{scheme}://#{host}/"
     raw_links                          = raw_links(body)
     { http_links, non_http_links }     = raw_links
-                                         |> absolutify(final_url)
+                                         |> absolutify(base_url)
                                          |> http_and_non_http
     { internal_links, external_links } = internal_and_external(http_links, host)
 
@@ -90,6 +92,13 @@ defmodule Funkspector.PageScraper do
         non_http: non_http_links
       }
     }
+  end
+
+  defp base_href(html) do
+    html
+    |> Floki.find("base")
+    |> Floki.attribute("href")
+    |> List.first
   end
 
   defp raw_links(html) do

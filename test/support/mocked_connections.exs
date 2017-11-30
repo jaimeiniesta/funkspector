@@ -7,6 +7,10 @@ defmodule Rocket.MockedConnections do
     { :ok, %{ status_code: status, body: mocked_html() } }
   end
 
+  def successful_response_with_base_href(status \\ 200, url) do
+    { :ok, %{ status_code: status, body: mocked_html_with_base_href(url) } }
+  end
+
   def successful_response_for_sitemap(status \\ 200) do
     { :ok, %{ status_code: status, body: mocked_xml() } }
   end
@@ -67,6 +71,11 @@ defmodule Rocket.MockedConnections do
       </body>
     </html>
     """
+  end
+
+  def mocked_html_with_base_href(url) do
+    mocked_html()
+    |> String.replace("<head>", "<head><base href=\"#{url}\">")
   end
 
   def mocked_xml do

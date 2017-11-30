@@ -90,7 +90,7 @@ defmodule PageScraperTest do
     end
   end
 
-  test "relative links are calculated from the base url" do
+  test "relative links are calculated from the root url when there is no base href specified" do
     with_mock HTTPoison, [get: fn(_url, _headers, _options) -> successful_response() end] do
       { :ok, results } = scrape("http://example.com/a/nested/directory/")
 
@@ -102,6 +102,23 @@ defmodule PageScraperTest do
          "http://example.com/relative-1",
          "http://example.com/a/nested/directory/relative-2",
          "http://example.com/a/nested/directory/relative-3?q=some#results"]
+    end
+  end
+
+  test "relative links are calculated from the base url when it is specified in the document" do
+    base_url = "http://example.com/base/"
+
+    with_mock HTTPoison, [get: fn(_url, _headers, _options) -> successful_response_with_base_href(base_url) end] do
+      { :ok, results } = scrape("http://example.com/a/nested/directory/")
+
+      assert results.links.http.internal ==
+        ["http://example.com/",
+         "http://example.com/faqs",
+         "http://example.com/contact",
+         "https://example.com/secure.html",
+         "http://example.com/relative-1",
+         "http://example.com/base/relative-2",
+         "http://example.com/base/relative-3?q=some#results"]
     end
   end
 
