@@ -30,9 +30,9 @@ defmodule Funkspector.Mixfile do
   # Type "mix help deps" for more examples and options
   defp deps do
     [
-      { :httpoison, "~> 0.11" },
-      { :floki,     "~> 0.9" },
-      { :friendly,  "~> 1.0" },
+      { :httpoison, "~> 1.1" },
+      { :floki,     "~> 0.20" },
+      { :friendly,  "~> 1.1" },
       { :mock,      "~> 0.1", only: :test},
       { :ex_doc,    ">= 0.0.0", only: :dev }
     ]
