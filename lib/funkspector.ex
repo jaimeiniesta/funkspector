@@ -12,8 +12,10 @@ defmodule Funkspector do
       iex> data.host
       "jaimeiniesta.com"
   """
-  def page_scrape(url) do
-    Funkspector.PageScraper.scrape(url)
+  def page_scrape(url, options \\ %{}) do
+    options = Map.merge(default_options(), options)
+
+    Funkspector.PageScraper.scrape(url, options)
   end
 
   @doc """
@@ -28,7 +30,17 @@ defmodule Funkspector do
       iex> first
       "http://validationhell.com/"
   """
-  def sitemap_scrape(url) do
-    Funkspector.SitemapScraper.scrape(url)
+  def sitemap_scrape(url, options \\ %{}) do
+    options = Map.merge(default_options(), options)
+
+    Funkspector.SitemapScraper.scrape(url, options)
+  end
+
+  def default_options do
+    %{
+      hackney: [:insecure],
+      recv_timeout: 25_000,
+      user_agent: "Funkspector/0.6.0 (+https://hex.pm/packages/funkspector)"
+    }
   end
 end

@@ -26,6 +26,17 @@ Funkspector can extract the locations from XML sitemaps, like this:
 iex> { :ok, data } = Funkspector.sitemap_scrape("http://validationhell.com/sitemap.xml")
 ```
 
+### Custom options
+
+Both `Funkspector.page_scrape` and `Funkspector.sitemap_scrape` accept options to customize the timeout and User Agent string.
+
+For example, you could use:
+
+```elixir
+  Funkspector.page_scrape("http://github.com", %{recv_timeout: 5_000, user_agent: "My Bot"})
+  Funkspector.sitemap_scrape("http://validationhell.com/sitemap.xml", %{recv_timeout: 5_000, user_agent: "My Bot"})
+```
+
 ### Scraped data
 
 Currently Funkspector returns this scraped data both from pages and sitemaps:

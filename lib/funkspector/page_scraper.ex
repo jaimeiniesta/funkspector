@@ -3,6 +3,7 @@ defmodule Funkspector.PageScraper do
   Provides a method to scrape a page, given its URL.
   """
 
+  import Funkspector, only: [default_options: 0]
   import Funkspector.Utils
   alias Funkspector.Resolver
 
@@ -47,21 +48,30 @@ defmodule Funkspector.PageScraper do
       iex> data.final_url
       "https://github.com/"
   """
-  def scrape(original_url) do
-    case Resolver.resolve(original_url) do
-      { :ok, final_url, response } ->
+  def scrape(original_url, options \\ %{}) do
+    options = Map.merge(default_options(), options)
+
+    case Resolver.resolve(original_url, options) do
+      {:ok, final_url, response} ->
         handle_response(response, original_url, final_url)
-      { _, url, response } ->
-        { :error, url, response}
+
+      {_, url, response} ->
+        {:error, url, response}
     end
   end
 
-  defp handle_response(response = %{ status_code: status, body: _body }, original_url, _final_url) when not status in 200..299 do
-    { :error, original_url, response }
+  #####################
+  # Private functions #
+  #####################
+
+  defp handle_response(response = %{status_code: status, body: _body}, original_url, _final_url)
+       when status not in 200..299 do
+    {:error, original_url, response}
   end
 
-  defp handle_response(%{ status_code: status, body: body }, original_url, final_url) when status in 200..299 do
-    { :ok, scraped_data(body, original_url, final_url) }
+  defp handle_response(%{status_code: status, body: body}, original_url, final_url)
+       when status in 200..299 do
+    {:ok, scraped_data(body, original_url, final_url)}
   end
 
   defp scraped_data(body, original_url, final_url) do
@@ -69,12 +79,15 @@ defmodule Funkspector.PageScraper do
 
     %{scheme: scheme, host: host} = URI.parse(final_url)
 
-    root_url                           = "#{scheme}://#{host}/"
-    raw_links                          = raw_links(body)
-    { http_links, non_http_links }     = raw_links
-                                         |> absolutify(base_url)
-                                         |> http_and_non_http
-    { internal_links, external_links } = internal_and_external(http_links, host)
+    root_url = "#{scheme}://#{host}/"
+    raw_links = raw_links(body)
+
+    {http_links, non_http_links} =
+      raw_links
+      |> absolutify(base_url)
+      |> http_and_non_http
+
+    {internal_links, external_links} = internal_and_external(http_links, host)
 
     %{
       scheme: scheme,
@@ -98,21 +111,21 @@ defmodule Funkspector.PageScraper do
     html
     |> Floki.find("base")
     |> Floki.attribute("href")
-    |> List.first
+    |> List.first()
   end
 
   defp raw_links(html) do
     html
     |> Floki.find("a")
     |> Floki.attribute("href")
-    |> Enum.uniq
+    |> Enum.uniq()
   end
 
   defp http_and_non_http(links) do
-    Enum.partition(links, &(&1 =~ ~r/^http(s)?:\/\//i))
+    Enum.split_with(links, &(&1 =~ ~r/^http(s)?:\/\//i))
   end
 
   defp internal_and_external(links, host) do
-    Enum.partition(links, &(&1 =~ ~r/^http(s)?:\/\/#{host}/i))
+    Enum.split_with(links, &(&1 =~ ~r/^http(s)?:\/\/#{host}/i))
   end
 end

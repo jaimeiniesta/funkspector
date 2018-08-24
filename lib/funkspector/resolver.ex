@@ -3,6 +3,8 @@ defmodule Funkspector.Resolver do
   Provides a method to follow URL redirections, returning the final URL.
   """
 
+  import Funkspector, only: [default_options: 0]
+
   # In case of these errors related with SSL we'll retry setting a TLS version, as per this post:
   # http://campezzi.ghost.io/httpoison-ssl-connection-closed/
   @reasons_to_retry_with_ssl_version [
@@ -19,37 +21,53 @@ defmodule Funkspector.Resolver do
       iex> final_url
       "https://github.com/"
   """
-  def resolve(url, max_redirects \\ 5, response \\ %{}, options \\ default_options())
-  def resolve(url, max_redirects, response, _options) when max_redirects < 1, do: {:ok, url, response}
-  def resolve(url, max_redirects, _response, options) do
+  def resolve(url, options \\ %{}) do
+    options = Map.merge(default_options(), options)
+
+    resolve_url(url, 5, %{}, options)
+  end
+
+  #####################
+  # Private functions #
+  #####################
+
+  defp resolve_url(url, max_redirects, response, _options) when max_redirects < 1,
+    do: {:ok, url, response}
+
+  defp resolve_url(url, max_redirects, _response, options) do
     # SSL cert verification disabled until this bug is solved:
     # https://github.com/edgurgel/httpoison/issues/93
-    case HTTPoison.get(url, ["User-Agent": user_agent()], options) do
-      { :ok, response = %{ status_code: status, headers: headers } } when status in 300..399 ->
+    case HTTPoison.get(url, ["User-Agent": user_agent(options)], Map.to_list(options)) do
+      {:ok, response = %{status_code: status, headers: headers}} when status in 300..399 ->
         to = URI.merge(url, location_from(headers)) |> to_string
-        resolve(to, max_redirects - 1, deflated(response))
+        resolve_url(to, max_redirects - 1, deflated(response), options)
 
-      { :ok, response = %{ status_code: status } } when (status < 200) or (status >= 400) ->
-        { :error, url, deflated(response) }
+      {:ok, response = %{status_code: status}} when status < 200 or status >= 400 ->
+        {:error, url, deflated(response)}
 
       {:error, response} when response in @reasons_to_retry_with_ssl_version ->
         if is_nil(options[:ssl]) do
-          resolve(url, max_redirects - 1, response, options ++ [ssl: [versions: [:"tlsv1.2"]]])
+          resolve_url(
+            url,
+            max_redirects - 1,
+            response,
+            Map.merge(%{ssl: [versions: [:"tlsv1.2"]]}, options)
+          )
         else
-          { :error, url, deflated(response) }
+          {:error, url, deflated(response)}
         end
 
-      { :error, url, response } ->
-        { :error, url, deflated(response) }
+      {:error, url, response} ->
+        {:error, url, deflated(response)}
 
-      { status, response } ->
-        { status, url, deflated(response) }
+      {status, response} ->
+        {status, url, deflated(response)}
     end
   end
 
-  defp default_options do
-    [hackney: [:insecure], recv_timeout: 25_000]
-  end
+  #####################
+  # Private functions #
+  #####################
 
   defp location_from(headers) do
     Enum.into(headers, %{})["Location"] || Enum.into(headers, %{})["location"]
@@ -59,23 +77,25 @@ defmodule Funkspector.Resolver do
   # https://github.com/edgurgel/httpoison/issues/81
   #
   defp deflated(response) do
-    gzipped = Map.has_key?(response, :headers) && Enum.any?(response.headers, fn(kv) ->
-      case kv do
-        { "Content-Encoding", "gzip" }   -> true
-        { "Content-Encoding", "x-gzip" } -> true
-        _ -> false
-      end
-    end)
+    gzipped =
+      Map.has_key?(response, :headers) &&
+        Enum.any?(response.headers, fn kv ->
+          case kv do
+            {"Content-Encoding", "gzip"} -> true
+            {"Content-Encoding", "x-gzip"} -> true
+            _ -> false
+          end
+        end)
 
     if gzipped do
-      Map.put response, :body, :zlib.gunzip(response.body)
+      Map.put(response, :body, :zlib.gunzip(response.body))
     else
       response
     end
   end
 
   # Provides a browser-like user agent
-  defp user_agent do
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/29.0.1547.76 Safari/537.36"
+  defp user_agent(options) do
+    options[:user_agent]
   end
 end

@@ -2,14 +2,16 @@ defmodule Funkspector.Mixfile do
   use Mix.Project
 
   def project do
-    [app: :funkspector,
-     version: "0.5.0",
-     elixir: "~> 1.3",
-     description: "Web page inspector for Elixir",
-     package: package(),
-     build_embedded: Mix.env == :prod,
-     start_permanent: Mix.env == :prod,
-     deps: deps()]
+    [
+      app: :funkspector,
+      version: "0.7.0",
+      elixir: "~> 1.6.6",
+      description: "Web page inspector for Elixir",
+      package: package(),
+      build_embedded: Mix.env() == :prod,
+      start_permanent: Mix.env() == :prod,
+      deps: deps()
+    ]
   end
 
   # Configuration for the OTP application
@@ -30,11 +32,11 @@ defmodule Funkspector.Mixfile do
   # Type "mix help deps" for more examples and options
   defp deps do
     [
-      { :httpoison, "~> 1.1" },
-      { :floki,     "~> 0.20" },
-      { :friendly,  "~> 1.1" },
-      { :mock,      "~> 0.1", only: :test},
-      { :ex_doc,    ">= 0.0.0", only: :dev }
+      {:httpoison, "~> 1.1"},
+      {:floki, "~> 0.20"},
+      {:friendly, "~> 1.1"},
+      {:mock, "~> 0.1", only: :test},
+      {:ex_doc, ">= 0.0.0", only: :dev}
     ]
   end
 
