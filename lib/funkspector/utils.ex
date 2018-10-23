@@ -8,11 +8,15 @@ defmodule Funkspector.Utils do
 
   ## Examples
 
-      iex> Funkspector.Utils.absolutify ["/faqs?section=legal", "/about"], "http://example.com"
-      ["http://example.com/faqs?section=legal", "http://example.com/about"]
+      iex> Funkspector.Utils.absolutify(["javascript:alert(hi)", "/faqs?section=legal", "/about", "http://example.com/faqs"], "http://example.com")
+      ["javascript:alert(hi)", "http://example.com/faqs?section=legal", "http://example.com/about", "http://example.com/faqs"]
   """
-  def absolutify(links, base_url) do
+  def absolutify(links, base_url) when is_list(links) do
     links
-    |> Enum.map(&(URI.merge(base_url, &1) |> to_string))
+    |> Enum.map(&absolutify(&1, base_url))
+  end
+
+  def absolutify(link, base_url) when is_binary(link) do
+    URI.merge(base_url, link) |> to_string()
   end
 end

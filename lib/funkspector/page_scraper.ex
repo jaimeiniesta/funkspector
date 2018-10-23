@@ -59,7 +59,7 @@ defmodule Funkspector.PageScraper do
   end
 
   defp scraped_data(body, original_url, final_url) do
-    base_url = base_href(body) || final_url
+    base_url = base_href(body, final_url) || final_url
 
     %{scheme: scheme, host: host} = URI.parse(final_url)
 
@@ -91,11 +91,14 @@ defmodule Funkspector.PageScraper do
     }
   end
 
-  defp base_href(html) do
-    html
-    |> Floki.find("base")
-    |> Floki.attribute("href")
-    |> List.first()
+  defp base_href(html, final_url) do
+    case html
+         |> Floki.find("base")
+         |> Floki.attribute("href")
+         |> List.first() do
+      nil -> nil
+      base_href -> absolutify(base_href, final_url)
+    end
   end
 
   defp raw_links(html) do
