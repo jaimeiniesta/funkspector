@@ -4,19 +4,20 @@ defmodule Rocket.MockedConnections do
   end
 
   def successful_response(status \\ 200) do
-    {:ok, %{status_code: status, body: mocked_html()}}
+    {:ok, %{status_code: status, headers: mocked_html_headers(), body: mocked_html()}}
   end
 
   def successful_response_with_base_href(status \\ 200, url) do
-    {:ok, %{status_code: status, body: mocked_html_with_base_href(url)}}
+    {:ok,
+     %{status_code: status, headers: mocked_html_headers(), body: mocked_html_with_base_href(url)}}
   end
 
   def successful_response_for_sitemap(status \\ 200) do
-    {:ok, %{status_code: status, body: mocked_xml()}}
+    {:ok, %{status_code: status, headers: mocked_xml_headers(), body: mocked_xml()}}
   end
 
   def malformed_xml_response(status \\ 200) do
-    {:ok, %{status_code: status, body: malformed_xml()}}
+    {:ok, %{status_code: status, headers: mocked_xml_headers(), body: malformed_xml()}}
   end
 
   def redirection_response(location_key, to_url) do
@@ -115,5 +116,19 @@ defmodule Rocket.MockedConnections do
 
   def malformed_xml do
     "<xml>"
+  end
+
+  def mocked_html_headers do
+    [
+      {"content-length", "293427"},
+      {"content-type", "text/html;charset=utf-8"}
+    ]
+  end
+
+  def mocked_xml_headers do
+    [
+      {"content-length", "293427"},
+      {"content-type", "text/xml;charset=utf-8"}
+    ]
   end
 end
