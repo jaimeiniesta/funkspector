@@ -25,7 +25,7 @@ defmodule Funkspector do
 
       iex> { :ok, data } = Funkspector.sitemap_scrape("http://validationhell.com/sitemap.xml")
       iex> length data.locs
-      1006
+      1014
       iex> [ first | _ ] = data.locs
       iex> first
       "http://validationhell.com/"
