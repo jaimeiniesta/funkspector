@@ -22,7 +22,7 @@ defmodule Funkspector.PageScraper do
       iex> data.links.http.internal
       []
       iex> data.links.http.external
-      ["http://www.iana.org/domains/example"]
+      ["https://www.iana.org/domains/example"]
       iex> data.links.non_http
       []
 
