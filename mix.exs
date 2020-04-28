@@ -37,7 +37,7 @@ defmodule Funkspector.Mixfile do
       {:floki, "~> 0.20.0"},
       {:friendly, "~> 1.1.0"},
       {:mock, "~> 0.3.4", only: :test},
-      {:ex_doc, ">= 0.0.0", only: :dev}
+      {:ex_doc, ">= 0.19.0", only: :dev}
     ]
   end
 
