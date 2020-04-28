@@ -110,6 +110,7 @@ defmodule Funkspector.PageScraper do
     html
     |> Floki.find("a")
     |> Floki.attribute("href")
+    |> Enum.map(&String.trim/1)
     |> Enum.uniq()
   end
 

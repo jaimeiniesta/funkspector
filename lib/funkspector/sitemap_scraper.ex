@@ -59,6 +59,7 @@ defmodule Funkspector.SitemapScraper do
     |> Friendly.find("loc")
     |> Enum.map(& &1[:text])
     |> List.flatten()
+    |> Enum.map(&String.trim/1)
     |> Enum.uniq()
   end
 end
