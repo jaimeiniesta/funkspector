@@ -41,6 +41,7 @@ For example, you could use:
 
 Currently Funkspector returns this scraped data both from pages and sitemaps:
 
+* `headers`. Response headers, including content-type etc.
 * `body`. Raw body.
 * `original_url` and `final_url`. Funkspector follows redirections, here are the original URL given and the final one after following the redirections.
 * `scheme`. Like, "http" or "https".

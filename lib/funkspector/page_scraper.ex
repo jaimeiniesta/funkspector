@@ -22,7 +22,7 @@ defmodule Funkspector.PageScraper do
       iex> data.links.http.internal
       []
       iex> data.links.http.external
-      ["http://www.iana.org/domains/example"]
+      ["https://www.iana.org/domains/example"]
       iex> data.links.non_http
       []
 
@@ -53,12 +53,16 @@ defmodule Funkspector.PageScraper do
     {:error, original_url, response}
   end
 
-  defp handle_response(%{status_code: status, body: body}, original_url, final_url)
+  defp handle_response(
+         %{status_code: status, headers: headers, body: body},
+         original_url,
+         final_url
+       )
        when status in 200..299 do
-    {:ok, scraped_data(body, original_url, final_url)}
+    {:ok, scraped_data(headers, body, original_url, final_url)}
   end
 
-  defp scraped_data(body, original_url, final_url) do
+  defp scraped_data(headers, body, original_url, final_url) do
     base_url = base_href(body, final_url) || final_url
 
     %{scheme: scheme, host: host} = URI.parse(final_url)
@@ -79,6 +83,7 @@ defmodule Funkspector.PageScraper do
       original_url: original_url,
       final_url: final_url,
       root_url: root_url,
+      headers: Enum.into(headers, %{}),
       body: body,
       links: %{
         raw: raw_links,

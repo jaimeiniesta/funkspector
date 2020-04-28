@@ -25,7 +25,7 @@ defmodule Funkspector do
 
       iex> { :ok, data } = Funkspector.sitemap_scrape("http://validationhell.com/sitemap.xml")
       iex> length data.locs
-      1006
+      1014
       iex> [ first | _ ] = data.locs
       iex> first
       "http://validationhell.com/"
@@ -39,6 +39,7 @@ defmodule Funkspector do
   def default_options do
     %{
       hackney: [:insecure],
+      timeout: 28_000,
       recv_timeout: 25_000,
       user_agent: "Funkspector/0.6.0 (+https://hex.pm/packages/funkspector)"
     }
