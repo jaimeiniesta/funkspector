@@ -4,7 +4,7 @@ defmodule Funkspector.Mixfile do
   def project do
     [
       app: :funkspector,
-      version: "0.8.0",
+      version: "0.8.1",
       elixir: "~> 1.8.1",
       description: "Web page inspector for Elixir",
       package: package(),
@@ -32,8 +32,8 @@ defmodule Funkspector.Mixfile do
   # Type "mix help deps" for more examples and options
   defp deps do
     [
-      {:hackney, "~> 1.15.2"},
-      {:httpoison, "~> 1.6.2"},
+      {:hackney, "~> 1.16.0"},
+      {:httpoison, "~> 1.7.0"},
       {:floki, "~> 0.20.0"},
       {:friendly, "~> 1.1.0"},
       {:mock, "~> 0.3.4", only: :test},
