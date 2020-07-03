@@ -77,6 +77,8 @@ defmodule Rocket.MockedConnections do
         <!-- External links -->
         <a href="https://twitter.com">Twitter</a>
         <a href="https://github.com">Github</a>
+        <a href="http://example.com.br">Example BR</a>
+        <a href="http://example.com.mx/faqs">Example MX</a>
 
         <!-- Non-HTTP links -->
         <a href="mailto:hello@example.com">email</a>

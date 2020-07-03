@@ -119,6 +119,13 @@ defmodule Funkspector.PageScraper do
   end
 
   defp internal_and_external(links, host) do
-    Enum.split_with(links, &(&1 =~ ~r/^http(s)?:\/\/#{host}/i))
+    Enum.split_with(links, &same_host?(&1, host))
+  end
+
+  defp same_host?(link, host) do
+    case URI.parse(link) do
+      %{host: ^host} -> true
+      _ -> false
+    end
   end
 end
