@@ -2,7 +2,6 @@
 
 [![Travis](https://img.shields.io/travis/jaimeiniesta/funkspector.svg?style=flat-square)](https://travis-ci.org/jaimeiniesta/funkspector)
 [![Hex.pm](https://img.shields.io/hexpm/v/funkspector.svg?style=flat-square)](https://hex.pm/packages/funkspector)
-[![Deps Status](https://beta.hexfaktor.org/badge/all/github/jaimeiniesta/funkspector.svg)](https://beta.hexfaktor.org/github/jaimeiniesta/funkspector)
 
 Web page inspector for Elixir.
 
