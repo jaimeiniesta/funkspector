@@ -5,7 +5,7 @@ defmodule Funkspector.Mixfile do
     [
       app: :funkspector,
       version: "0.8.1",
-      elixir: "~> 1.8.1",
+      elixir: "~> 1.10.4",
       description: "Web page inspector for Elixir",
       package: package(),
       build_embedded: Mix.env() == :prod,
