@@ -23,12 +23,12 @@ defmodule Funkspector do
 
   ## Examples
 
-      iex> { :ok, data } = Funkspector.sitemap_scrape("http://validationhell.com/sitemap.xml")
+      iex> { :ok, data } = Funkspector.sitemap_scrape("https://rocketvalidator.com/sitemap.xml")
       iex> length data.locs
-      1014
+      502
       iex> [ first | _ ] = data.locs
       iex> first
-      "http://validationhell.com/"
+      "https://rocketvalidator.com/"
   """
   def sitemap_scrape(url, options \\ %{}) do
     options = Map.merge(default_options(), options)
