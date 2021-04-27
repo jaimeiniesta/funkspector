@@ -1,6 +1,6 @@
 defmodule Funkspector.PageScraper do
   @moduledoc """
-  Provides a method to scrape a page, given its URL.
+  Provides a method to scrape an HTML page, given its URL.
   """
 
   import Funkspector, only: [default_options: 0]

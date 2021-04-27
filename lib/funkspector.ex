@@ -36,6 +36,24 @@ defmodule Funkspector do
     Funkspector.SitemapScraper.scrape(url, options)
   end
 
+  @doc """
+  Convenience method, this is just a shortcut for `Funkspector.TextSitemapScraper.scrape/1`.
+
+  ## Examples
+
+      iex> { :ok, data } = Funkspector.text_sitemap_scrape("https://rocketvalidator.com/sitemap.txt")
+      iex> length data.urls
+      527
+      iex> [ first | _ ] = data.urls
+      iex> first
+      "https://rocketvalidator.com/"
+  """
+  def text_sitemap_scrape(url, options \\ %{}) do
+    options = Map.merge(default_options(), options)
+
+    Funkspector.TextSitemapScraper.scrape(url, options)
+  end
+
   def default_options do
     %{
       hackney: [:insecure],

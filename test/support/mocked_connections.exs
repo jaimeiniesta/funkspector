@@ -16,6 +16,10 @@ defmodule Rocket.MockedConnections do
     {:ok, %{status_code: status, headers: mocked_xml_headers(), body: mocked_xml()}}
   end
 
+  def successful_response_for_text_sitemap(status \\ 200) do
+    {:ok, %{status_code: status, headers: mocked_text_headers(), body: mocked_text()}}
+  end
+
   def malformed_xml_response(status \\ 200) do
     {:ok, %{status_code: status, headers: mocked_xml_headers(), body: malformed_xml()}}
   end
@@ -132,5 +136,23 @@ defmodule Rocket.MockedConnections do
       {"content-length", "293427"},
       {"content-type", "text/xml;charset=utf-8"}
     ]
+  end
+
+  def mocked_text_headers do
+    [
+      {"content-length", "293427"},
+      {"content-type", "text/plain;charset=utf-8"}
+    ]
+  end
+
+  def mocked_text do
+    """
+    http://example.com/
+    http://example.com/about
+
+    /faqs
+
+    http://docs.example.com
+    """
   end
 end
