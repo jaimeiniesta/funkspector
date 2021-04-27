@@ -42,9 +42,9 @@ defmodule Funkspector do
   ## Examples
 
       iex> { :ok, data } = Funkspector.text_sitemap_scrape("https://rocketvalidator.com/sitemap.txt")
-      iex> length data.urls
+      iex> length data.lines
       527
-      iex> [ first | _ ] = data.urls
+      iex> [ first | _ ] = data.lines
       iex> first
       "https://rocketvalidator.com/"
   """

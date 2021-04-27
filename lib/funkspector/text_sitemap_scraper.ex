@@ -40,7 +40,7 @@ defmodule Funkspector.TextSitemapScraper do
     %{scheme: scheme, host: host} = URI.parse(final_url)
 
     root_url = "#{scheme}://#{host}/"
-    urls = raw_lines(body) |> absolutify(root_url)
+    lines = raw_lines(body) |> absolutify(root_url)
 
     %{
       scheme: scheme,
@@ -50,7 +50,7 @@ defmodule Funkspector.TextSitemapScraper do
       root_url: root_url,
       headers: Enum.into(headers, %{}),
       body: body,
-      urls: urls
+      lines: lines
     }
   end
 

@@ -32,7 +32,7 @@ defmodule TextSitemapScraperTest do
       get: fn _url, _headers, _options -> successful_response_for_text_sitemap() end do
       {:ok, results} = scrape("http://example.com/sitemap.txt")
 
-      assert results.urls ==
+      assert results.lines ==
                [
                  "http://example.com/",
                  "http://example.com/about",
