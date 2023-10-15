@@ -13,6 +13,13 @@ defmodule Funkspector.Resolver do
     %HTTPoison.Error{
       id: nil,
       reason: {:options, {:sslv3, {:versions, [:"tlsv1.2", :"tlsv1.1", :tlsv1, :sslv3]}}}
+    },
+    %HTTPoison.Error{
+      id: nil,
+      reason:
+        {:tls_alert,
+         {:handshake_failure,
+          'TLS client: In state hello received SERVER ALERT: Fatal - Handshake Failure\\n'}}
     }
   ]
 
