@@ -32,12 +32,12 @@ defmodule Funkspector.Mixfile do
   # Type "mix help deps" for more examples and options
   defp deps do
     [
-      {:hackney, "~> 1.18.1"},
-      {:httpoison, "~> 1.8.2"},
-      {:floki, "~> 0.20.0"},
+      {:hackney, "~> 1.20.1"},
+      {:httpoison, "~> 2.1.0"},
+      {:floki, "~> 0.23.0"},
       {:friendly, "~> 1.1.0"},
-      {:mock, "~> 0.3.4", only: :test},
-      {:ex_doc, ">= 0.19.0", only: :dev}
+      {:mock, "~> 0.3.8", only: :test},
+      {:ex_doc, ">= 0.30.6", only: :dev}
     ]
   end
 
