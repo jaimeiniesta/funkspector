@@ -3,7 +3,7 @@ defmodule PageScraperTest do
   doctest Funkspector.PageScraper
 
   import Mock
-  import Rocket.MockedConnections
+  import FunkspectorTest.MockedConnections
 
   import Funkspector.PageScraper, only: [scrape: 1]
 

@@ -1,4 +1,4 @@
-defmodule Rocket.MockedConnections do
+defmodule FunkspectorTest.MockedConnections do
   def unsuccessful_response(status) do
     {:ok, %{status_code: status, body: "returned body"}}
   end

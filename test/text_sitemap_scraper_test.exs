@@ -3,7 +3,7 @@ defmodule TextSitemapScraperTest do
   doctest Funkspector.TextSitemapScraper
 
   import Mock
-  import Rocket.MockedConnections
+  import FunkspectorTest.MockedConnections
 
   import Funkspector.TextSitemapScraper, only: [scrape: 1]
 

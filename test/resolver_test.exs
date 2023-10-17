@@ -3,7 +3,7 @@ defmodule Funkspector.ResolverTest do
   doctest Funkspector.Resolver
 
   import Mock
-  import Rocket.MockedConnections
+  import FunkspectorTest.MockedConnections
   import Funkspector.Resolver
 
   test "resolves URLs" do

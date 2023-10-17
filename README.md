@@ -1,6 +1,5 @@
 # Funkspector
 
-[![Travis](https://img.shields.io/travis/jaimeiniesta/funkspector.svg?style=flat-square)](https://travis-ci.org/jaimeiniesta/funkspector)
 [![Hex.pm](https://img.shields.io/hexpm/v/funkspector.svg?style=flat-square)](https://hex.pm/packages/funkspector)
 
 Web page inspector for Elixir.
@@ -14,7 +13,7 @@ Funkspector is a web scraper that lets you extract data from web pages and XML s
 Simply pass Funkspector the URL of a web page to inspect and it will return its scraped data:
 
 ```elixir
-iex> { :ok, data } = Funkspector.page_scrape("http://github.com")
+iex> { :ok, data } = Funkspector.page_scrape("https://rocketvalidator.com")
 ```
 
 ### Sitemap Scraping
@@ -22,9 +21,14 @@ iex> { :ok, data } = Funkspector.page_scrape("http://github.com")
 Funkspector can extract the locations from XML sitemaps, like this:
 
 ```elixir
-iex> { :ok, data } = Funkspector.sitemap_scrape("http://validationhell.com/sitemap.xml")
+iex> { :ok, data } = Funkspector.sitemap_scrape("https://rocketvalidator.com/sitemap.xml")
 ```
 
+It also supports TXT sitemaps:
+
+```elixir
+iex> { :ok, data } = Funkspector.sitemap_scrape("https://rocketvalidator.com/sitemap.txt")
+```
 ### Custom options
 
 Both `Funkspector.page_scrape` and `Funkspector.sitemap_scrape` accept options to customize the timeout and User Agent string.
