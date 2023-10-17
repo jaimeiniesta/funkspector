@@ -12,17 +12,36 @@ defmodule Funkspector.PageScraper do
 
   ## Examples
 
-      iex> { :ok, data } = Funkspector.PageScraper.scrape("http://example.com")
+      iex> { :ok, data } = Funkspector.PageScraper.scrape("https://jaimeiniesta.com")
       iex> data.scheme
-      "http"
+      "https"
       iex> data.host
-      "example.com"
+      "jaimeiniesta.com"
       iex> data.root_url
-      "http://example.com/"
+      "https://jaimeiniesta.com/"
       iex> data.links.http.internal
       []
       iex> data.links.http.external
-      ["https://www.iana.org/domains/example"]
+      [
+              "http://www.archive.elixirconf.eu/elixirconf2016",
+              "https://steadyhq.com/",
+              "https://stuart.com/",
+              "https://heartsradiant.com/",
+              "http://elixirschool.com",
+              "https://elixirschool.com/en/lessons/misc/nimble_publisher",
+              "https://github.com/elixirschool/school_house/issues/77",
+              "https://exercism.org/profiles/jaimeiniesta",
+              "https://rocketvalidator.com/",
+              "https://docs.rocketvalidator.com/api/",
+              "https://www.ama.gov.pt",
+              "https://webawards.com.au",
+              "https://www.bebanjo.com/",
+              "https://localistico.com/",
+              "https://weheartit.com/",
+              "https://bemate.com/",
+              "https://www.linkedin.com/in/jaimeiniesta/",
+              "https://github.com/jaimeiniesta"
+            ]
       iex> data.links.non_http
       []
 
@@ -98,6 +117,7 @@ defmodule Funkspector.PageScraper do
 
   defp base_href(html, final_url) do
     case html
+         |> Floki.parse_document!()
          |> Floki.find("base")
          |> Floki.attribute("href")
          |> List.first() do
@@ -108,6 +128,7 @@ defmodule Funkspector.PageScraper do
 
   defp raw_links(html) do
     html
+    |> Floki.parse_document!()
     |> Floki.find("a")
     |> Floki.attribute("href")
     |> Enum.map(&String.trim/1)

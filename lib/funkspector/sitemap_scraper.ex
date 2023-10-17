@@ -3,9 +3,11 @@ defmodule Funkspector.SitemapScraper do
   Provides a method to scrape an XML sitemap, given its URL.
   """
 
+  alias Funkspector.Resolver
+
   import Funkspector, only: [default_options: 0]
   import Funkspector.Utils
-  alias Funkspector.Resolver
+  import SweetXml
 
   @doc """
   Fetches the given URL, follows redirections, and returns the data scraped from its XML.
@@ -55,11 +57,14 @@ defmodule Funkspector.SitemapScraper do
   end
 
   defp raw_locs(xml) do
-    xml
-    |> Friendly.find("loc")
-    |> Enum.map(& &1[:text])
-    |> List.flatten()
-    |> Enum.map(&String.trim/1)
-    |> Enum.uniq()
+    try do
+      xml
+      |> parse(quiet: true)
+      |> xpath(~x"//url/loc/text()"l)
+      |> Enum.uniq()
+      |> Enum.map(&to_string/1)
+    catch
+      _, _ -> []
+    end
   end
 end

@@ -8,9 +8,9 @@ defmodule Funkspector do
 
   ## Examples
 
-      iex> { :ok, data } = Funkspector.page_scrape("http://example.com")
+      iex> { :ok, data } = Funkspector.page_scrape("https://jaimeiniesta.com")
       iex> data.host
-      "example.com"
+      "jaimeiniesta.com"
   """
   def page_scrape(url, options \\ %{}) do
     options = Map.merge(default_options(), options)

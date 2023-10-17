@@ -3,43 +3,42 @@ defmodule SitemapScraperTest do
   doctest Funkspector.SitemapScraper
 
   import Mock
-  import Rocket.MockedConnections
+  import FunkspectorTest.MockedConnections
 
-  import Funkspector.SitemapScraper, only: [ scrape: 1 ]
+  import Funkspector.SitemapScraper, only: [scrape: 1]
 
   test "returns :ok for status in 2xx" do
     for status <- 200..201 do
-      with_mock HTTPoison, [get: fn(_url, _headers, _options) -> successful_response_for_sitemap(status) end] do
-        { :ok, _results } = scrape("http://example.com/sitemap.xml")
+      with_mock HTTPoison,
+        get: fn _url, _headers, _options -> successful_response_for_sitemap(status) end do
+        {:ok, _results} = scrape("http://example.com/sitemap.xml")
       end
     end
   end
 
   test "returns :error for status other than 2xx" do
     for status <- [100, 301, 404, 500] do
-      with_mock HTTPoison, [get: fn(_url, _headers, _options) -> unsuccessful_response(status) end] do
-        { :error, url, response } = scrape("http://example.com/sitemap.xml")
+      with_mock HTTPoison, get: fn _url, _headers, _options -> unsuccessful_response(status) end do
+        {:error, url, response} = scrape("http://example.com/sitemap.xml")
 
-        assert url  == "http://example.com/sitemap.xml"
+        assert url == "http://example.com/sitemap.xml"
         assert response.status_code == status
       end
     end
   end
 
   test "returns the locs, absolutified" do
-    with_mock HTTPoison, [get: fn(_url, _headers, _options) -> successful_response_for_sitemap() end] do
-      { :ok, results } = scrape("http://example.com/sitemap.xml")
+    with_mock HTTPoison, get: fn _url, _headers, _options -> successful_response_for_sitemap() end do
+      {:ok, results} = scrape("http://example.com/sitemap.xml")
 
       assert results.locs ==
-        ["http://example.com/",
-         "http://example.com/faqs",
-         "http://example.com/about"]
+               ["http://example.com/", "http://example.com/faqs", "http://example.com/about"]
     end
   end
 
   test "returns no location if the XML could not be parsed" do
-    with_mock HTTPoison, [get: fn(_url, _headers, _options) -> malformed_xml_response() end] do
-      { :ok, results } = scrape("http://example.com/bad.xml")
+    with_mock HTTPoison, get: fn _url, _headers, _options -> malformed_xml_response() end do
+      {:ok, results} = scrape("http://example.com/bad.xml")
 
       assert results.locs == []
     end
