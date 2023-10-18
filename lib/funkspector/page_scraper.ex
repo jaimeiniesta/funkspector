@@ -8,7 +8,7 @@ defmodule Funkspector.PageScraper do
   alias Funkspector.Document
 
   @doc """
-  Parses the Document body and returns the data scraped from its HTML.
+  Parses the Document contents and returns the data scraped from its HTML.
   """
   def parse(%Document{} = document) do
     {:ok, %{document | data: scraped_data(document)}}
@@ -18,15 +18,15 @@ defmodule Funkspector.PageScraper do
   # Private functions #
   #####################
 
-  defp scraped_data(%Document{url: url, body: body, data: data}) do
+  defp scraped_data(%Document{url: url, contents: contents, data: data}) do
     %{scheme: scheme, host: host} = URI.parse(url)
 
     urls =
       (data[:urls] || %{})
       |> Map.put_new(:root_url, "#{scheme}://#{host}/")
-      |> Map.put_new(:base_url, base_href(body, url) || url)
+      |> Map.put_new(:base_url, base_href(contents, url) || url)
 
-    raw_links = raw_links(body)
+    raw_links = raw_links(contents)
 
     {http_links, non_http_links} =
       raw_links

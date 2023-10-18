@@ -3,19 +3,36 @@ defmodule Funkspector do
   Funkspector is a web scraper that lets you extract data from web pages.
   """
 
+  alias Funkspector.{Document, PageScraper}
+
   @doc """
-  Convenience method, this is just a shortcut for `Funkspector.PageScraper.scrape/1`.
+  Parses an HTML document.
 
-  ## Examples
+  This can be used to request a document by passing its URL, like:
 
-      iex> { :ok, data } = Funkspector.page_scrape("https://jaimeiniesta.com")
-      iex> data.host
+    Funkspector.page_scrape("https://jaimeiniesta.com")
+
+  Or to parse an already loaded document, by passing its HTML contents and base URL
+
+    Funkspector.page_scrape("https://example.com", contents: "<html>...</html>")
+
+  ## Example: requesting and parsing a document
+
+      iex> { :ok, document } = Funkspector.page_scrape("https://jaimeiniesta.com")
+      iex> document.data.host
       "jaimeiniesta.com"
+      iex> Enum.take(document.data.links.http.external, 3)
+      ["http://www.archive.elixirconf.eu/elixirconf2016", "https://steadyhq.com/", "https://stuart.com/"]
   """
   def page_scrape(url, options \\ %{}) do
     options = Map.merge(default_options(), options)
 
-    Funkspector.PageScraper.scrape(url, options)
+    with {:ok, document} <- request_or_load_contents(url, options),
+         {:ok, document} <- PageScraper.parse(document) do
+      {:ok, document}
+    else
+      error -> error
+    end
   end
 
   @doc """
@@ -61,5 +78,16 @@ defmodule Funkspector do
       recv_timeout: 25_000,
       user_agent: "Funkspector/0.6.0 (+https://hex.pm/packages/funkspector)"
     }
+  end
+
+  #####################
+  # Private functions #
+  #####################
+
+  defp request_or_load_contents(url, options) do
+    case options[:contents] do
+      nil -> Document.request(url, options)
+      contents when is_binary(contents) -> Document.load(contents, %{url: url})
+    end
   end
 end

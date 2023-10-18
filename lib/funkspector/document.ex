@@ -1,15 +1,15 @@
 defmodule Funkspector.Document do
   @moduledoc """
-  Defines the Document struct and functions to request or load its body.
+  Defines the Document struct and functions to request or load its contents.
   """
 
-  defstruct [:url, :body, :data]
+  defstruct [:url, :contents, :data]
 
   alias __MODULE__
   alias Funkspector.Resolver
 
   @doc """
-  Retrieves the url and returns a document with its body.
+  Retrieves the url and returns a document with its contents.
   """
   def request(url, options \\ %{}) do
     case Resolver.resolve(url, options) do
@@ -22,23 +22,27 @@ defmodule Funkspector.Document do
   end
 
   @doc """
-  Returns a document with the given body and optional root_url.
+  Returns a document with the given contents and optional root_url.
 
   Options:
 
     - `:url` allows to set an URL for the document, which is useful later on for parsing and setting absolute links.
   """
-  def load(body, options \\ %{}) do
+  def load(contents, options \\ %{}) do
     url = options[:url]
 
-    {:ok, %Document{body: body, url: url}}
+    {:ok, %Document{contents: contents, url: url}}
   end
 
   #####################
   # Private functions #
   #####################
 
-  defp handle_response(response = %{status_code: status, body: _body}, original_url, _final_url)
+  defp handle_response(
+         response = %{status_code: status, body: _body},
+         original_url,
+         _final_url
+       )
        when status not in 200..299 do
     {:error, original_url, response}
   end
@@ -52,7 +56,7 @@ defmodule Funkspector.Document do
     {:ok,
      %Document{
        url: final_url,
-       body: body,
+       contents: body,
        data: %{
          urls: %{
            original_url: original_url
