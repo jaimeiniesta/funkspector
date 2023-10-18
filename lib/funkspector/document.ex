@@ -54,7 +54,9 @@ defmodule Funkspector.Document do
        url: final_url,
        body: body,
        data: %{
-         original_url: original_url,
+         urls: %{
+           original_url: original_url
+         },
          headers: Enum.into(headers, %{})
        }
      }}

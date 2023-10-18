@@ -3,126 +3,62 @@ defmodule Funkspector.PageScraper do
   Provides a method to scrape an HTML page, given its URL.
   """
 
-  import Funkspector, only: [default_options: 0]
   import Funkspector.Utils
-  alias Funkspector.Resolver
+
+  alias Funkspector.Document
 
   @doc """
-  Fetches the given URL, follows redirections, and returns the data scraped from its HTML.
-
-  ## Examples
-
-      iex> { :ok, data } = Funkspector.PageScraper.scrape("https://jaimeiniesta.com")
-      iex> data.scheme
-      "https"
-      iex> data.host
-      "jaimeiniesta.com"
-      iex> data.root_url
-      "https://jaimeiniesta.com/"
-      iex> data.links.http.internal
-      []
-      iex> data.links.http.external
-      [
-              "http://www.archive.elixirconf.eu/elixirconf2016",
-              "https://steadyhq.com/",
-              "https://stuart.com/",
-              "https://heartsradiant.com/",
-              "http://elixirschool.com",
-              "https://elixirschool.com/en/lessons/misc/nimble_publisher",
-              "https://github.com/elixirschool/school_house/issues/77",
-              "https://exercism.org/profiles/jaimeiniesta",
-              "https://rocketvalidator.com/",
-              "https://docs.rocketvalidator.com/api/",
-              "https://www.ama.gov.pt",
-              "https://webawards.com.au",
-              "https://www.bebanjo.com/",
-              "https://localistico.com/",
-              "https://weheartit.com/",
-              "https://bemate.com/",
-              "https://www.linkedin.com/in/jaimeiniesta/",
-              "https://github.com/jaimeiniesta"
-            ]
-      iex> data.links.non_http
-      []
-
-      iex> { :ok, data } = Funkspector.PageScraper.scrape("http://github.com")
-      iex> data.original_url
-      "http://github.com"
-      iex> data.final_url
-      "https://github.com/"
+  Parses the Document body and returns the data scraped from its HTML.
   """
-  def scrape(original_url, options \\ %{}) do
-    options = Map.merge(default_options(), options)
-
-    case Resolver.resolve(original_url, options) do
-      {:ok, final_url, response} ->
-        handle_response(response, original_url, final_url)
-
-      {_, url, response} ->
-        {:error, url, response}
-    end
+  def parse(%Document{} = document) do
+    {:ok, %{document | data: scraped_data(document)}}
   end
 
   #####################
   # Private functions #
   #####################
 
-  defp handle_response(response = %{status_code: status, body: _body}, original_url, _final_url)
-       when status not in 200..299 do
-    {:error, original_url, response}
-  end
+  defp scraped_data(%Document{url: url, body: body, data: data}) do
+    %{scheme: scheme, host: host} = URI.parse(url)
 
-  defp handle_response(
-         %{status_code: status, headers: headers, body: body},
-         original_url,
-         final_url
-       )
-       when status in 200..299 do
-    {:ok, scraped_data(headers, body, original_url, final_url)}
-  end
+    urls =
+      (data[:urls] || %{})
+      |> Map.put_new(:root_url, "#{scheme}://#{host}/")
+      |> Map.put_new(:base_url, base_href(body, url) || url)
 
-  defp scraped_data(headers, body, original_url, final_url) do
-    base_url = base_href(body, final_url) || final_url
-
-    %{scheme: scheme, host: host} = URI.parse(final_url)
-
-    root_url = "#{scheme}://#{host}/"
     raw_links = raw_links(body)
 
     {http_links, non_http_links} =
       raw_links
-      |> absolutify(base_url)
+      |> absolutify(urls.base_url)
       |> http_and_non_http
 
     {internal_links, external_links} = internal_and_external(http_links, host)
 
-    %{
-      scheme: scheme,
-      host: host,
-      original_url: original_url,
-      final_url: final_url,
-      root_url: root_url,
-      headers: Enum.into(headers, %{}),
-      body: body,
-      links: %{
-        raw: raw_links,
-        http: %{
-          internal: internal_links,
-          external: external_links
-        },
-        non_http: non_http_links
-      }
+    links = %{
+      raw: raw_links,
+      http: %{
+        internal: internal_links,
+        external: external_links
+      },
+      non_http: non_http_links
     }
+
+    (data || %{})
+    |> Map.put(:urls, urls)
+    |> Map.put_new(:scheme, scheme)
+    |> Map.put_new(:host, host)
+    |> Map.put_new(:links, links)
   end
 
-  defp base_href(html, final_url) do
+  defp base_href(html, url) do
     case html
          |> Floki.parse_document!()
          |> Floki.find("base")
          |> Floki.attribute("href")
          |> List.first() do
       nil -> nil
-      base_href -> absolutify(base_href, final_url)
+      base_href -> absolutify(base_href, url)
     end
   end
 
