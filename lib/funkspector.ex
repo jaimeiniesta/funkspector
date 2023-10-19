@@ -12,11 +12,11 @@ defmodule Funkspector do
 
     Funkspector.page_scrape("https://jaimeiniesta.com")
 
-  Or to parse an already loaded document, by passing its HTML contents and base URL
+  Or to scrape an already loaded document, by passing its HTML contents and base URL
 
     Funkspector.page_scrape("https://example.com", contents: "<html>...</html>")
 
-  ## Example: requesting and parsing a document
+  ## Example: requesting and scraping a document
 
       iex> { :ok, document } = Funkspector.page_scrape("https://jaimeiniesta.com")
       iex> document.data.host
@@ -28,7 +28,7 @@ defmodule Funkspector do
     options = Map.merge(default_options(), options)
 
     with {:ok, document} <- request_or_load_contents(url, options),
-         {:ok, document} <- PageScraper.parse(document) do
+         {:ok, document} <- PageScraper.scrape(document) do
       {:ok, document}
     else
       error -> error

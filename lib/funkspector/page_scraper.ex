@@ -8,9 +8,9 @@ defmodule Funkspector.PageScraper do
   alias Funkspector.Document
 
   @doc """
-  Parses the Document contents and returns the data scraped from its HTML.
+  Scrapes the Document contents and returns the data scraped from its HTML.
   """
-  def parse(%Document{} = document) do
+  def scrape(%Document{} = document) do
     {:ok, %{document | data: scraped_data(document)}}
   end
 
