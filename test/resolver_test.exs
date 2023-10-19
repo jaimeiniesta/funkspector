@@ -32,7 +32,7 @@ defmodule Funkspector.ResolverTest do
   end
 
   test "returns :error if host does not exist" do
-    with_mock HTTPoison, get: fn url, _headers, _options -> http_error_response(url) end do
+    with_mock HTTPoison, get: fn _url, _headers, _options -> http_error_response() end do
       {:error, "http://this_does_not_exist.com", %HTTPoison.Error{id: nil, reason: :nxdomain}} =
         resolve("http://this_does_not_exist.com")
     end

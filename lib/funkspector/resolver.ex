@@ -68,9 +68,6 @@ defmodule Funkspector.Resolver do
           {:error, url, deflated(response)}
         end
 
-      {:error, url, response} ->
-        {:error, url, deflated(response)}
-
       {status, response} ->
         {status, url, deflated(response)}
     end
