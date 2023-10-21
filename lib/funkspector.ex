@@ -77,7 +77,11 @@ defmodule Funkspector do
     scrape(url, options, &TextSitemapScraper.scrape/1)
   end
 
-  def default_options do
+  #####################
+  # Private functions #
+  #####################
+
+  defp default_options do
     %{
       hackney: [:insecure],
       timeout: 28_000,
@@ -85,10 +89,6 @@ defmodule Funkspector do
       user_agent: "Funkspector/0.6.0 (+https://hex.pm/packages/funkspector)"
     }
   end
-
-  #####################
-  # Private functions #
-  #####################
 
   def scrape(url, options, scraping_function) do
     options = Map.merge(default_options(), options)
