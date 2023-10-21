@@ -10,24 +10,31 @@ defmodule PageScraperTest do
   setup do
     url = "https://example.com/page"
     html = mocked_html()
+    {:ok, document} = Document.load(url, html)
 
-    {:ok, url: url, html: html}
+    {:ok, url: url, html: html, document: document}
   end
 
-  test "scrapes data", %{url: url, html: html} do
-    html_doc = %Document{url: url, contents: html, data: nil}
-
-    {:ok, document} = PageScraper.scrape(html_doc)
+  test "scrapes data", %{url: url, html: html, document: document} do
+    {:ok, document} = PageScraper.scrape(document)
 
     assert document == %Document{
              url: url,
              contents: html,
              data: %{
-               scheme: "https",
-               host: "example.com",
                urls: %{
-                 base_url: "https://example.com/page",
-                 root_url: "https://example.com/"
+                 parsed: %URI{
+                   scheme: "https",
+                   authority: "example.com",
+                   userinfo: nil,
+                   host: "example.com",
+                   port: 443,
+                   path: "/page",
+                   query: nil,
+                   fragment: nil
+                 },
+                 base: "https://example.com/page",
+                 root: "https://example.com/"
                },
                links: %{
                  http: %{
@@ -73,63 +80,8 @@ defmodule PageScraperTest do
            }
   end
 
-  test "respects existing data", %{url: url, html: html} do
-    headers = %{
-      "content-length" => "293427",
-      "content-type" => "text/html;charset=utf-8"
-    }
-
-    data = %{
-      headers: headers,
-      urls: %{original_url: "http://example.com"}
-    }
-
-    html_doc = %Document{url: url, contents: html, data: data}
-
-    {:ok, %Document{data: data}} = PageScraper.scrape(html_doc)
-
-    assert data.headers == headers
-
-    assert data.urls == %{
-             original_url: "http://example.com",
-             base_url: "https://example.com/page",
-             root_url: "https://example.com/"
-           }
-  end
-
-  test "returns the scheme and host", %{html: html} do
-    for {url, scheme, host} <- [
-          {"http://example.com", "http", "example.com"},
-          {"http://www.example.com/", "http", "www.example.com"},
-          {"https://example.net/faqs?id=2", "https", "example.net"}
-        ] do
-      html_doc = %Document{url: url, contents: html, data: nil}
-
-      {:ok, %Document{data: data}} = PageScraper.scrape(html_doc)
-
-      assert data.scheme == scheme
-      assert data.host == host
-    end
-  end
-
-  test "returns the root_url", %{html: html} do
-    for {url, root_url} <- [
-          {"http://example.com", "http://example.com/"},
-          {"http://www.example.com/#pricing", "http://www.example.com/"},
-          {"https://example.net/faqs?id=2", "https://example.net/"}
-        ] do
-      html_doc = %Document{url: url, contents: html, data: nil}
-
-      {:ok, %Document{data: data}} = PageScraper.scrape(html_doc)
-
-      assert data.urls.root_url == root_url
-    end
-  end
-
-  test "returns the raw links", %{url: url, html: html} do
-    html_doc = %Document{url: url, contents: html, data: nil}
-
-    {:ok, %Document{data: data}} = PageScraper.scrape(html_doc)
+  test "returns the raw links", %{document: document} do
+    {:ok, %Document{data: data}} = PageScraper.scrape(document)
 
     assert data.links.raw ==
              [
@@ -150,12 +102,13 @@ defmodule PageScraperTest do
              ]
   end
 
-  test "returns the internal links, including absolute and relative ones", %{url: url, html: html} do
-    html_doc = %Document{url: url, contents: html, data: nil}
+  test "returns the internal links, including absolute and relative ones", %{
+    url: url,
+    document: document
+  } do
+    {:ok, %Document{data: data}} = PageScraper.scrape(document)
 
-    {:ok, %Document{data: data}} = PageScraper.scrape(html_doc)
-
-    assert data.urls.base_url == url
+    assert data.urls.base == url
 
     assert data.links.http.internal ==
              [
@@ -173,11 +126,11 @@ defmodule PageScraperTest do
     html: html
   } do
     url = "https://example.com/a/nested/directory/"
-    html_doc = %Document{url: url, contents: html, data: nil}
+    {:ok, document} = Document.load(url, html)
 
-    {:ok, %Document{data: data}} = PageScraper.scrape(html_doc)
+    {:ok, %Document{data: data}} = PageScraper.scrape(document)
 
-    assert data.urls.base_url == url
+    assert data.urls.base == url
 
     assert data.links.http.internal ==
              [
@@ -192,18 +145,15 @@ defmodule PageScraperTest do
   end
 
   test "relative links are calculated from the base url when it is specified in the document" do
+    url = "https://example.com/a/nested/directory/"
     base_url = "http://example.com/base/"
     html = mocked_html_with_base_href(base_url)
 
-    html_doc = %Document{
-      url: "https://example.com/a/nested/directory/",
-      contents: html,
-      data: nil
-    }
+    {:ok, document} = Document.load(url, html)
 
-    {:ok, %Document{data: data}} = PageScraper.scrape(html_doc)
+    {:ok, %Document{data: data}} = PageScraper.scrape(document)
 
-    assert data.urls.base_url == "http://example.com/base/"
+    assert data.urls.base == "http://example.com/base/"
 
     assert data.links.http.internal ==
              [
@@ -217,10 +167,8 @@ defmodule PageScraperTest do
              ]
   end
 
-  test "returns the external links", %{url: url, html: html} do
-    html_doc = %Document{url: url, contents: html, data: nil}
-
-    {:ok, %Document{data: data}} = PageScraper.scrape(html_doc)
+  test "returns the external links", %{document: document} do
+    {:ok, %Document{data: data}} = PageScraper.scrape(document)
 
     assert data.links.http.external ==
              [
@@ -231,10 +179,8 @@ defmodule PageScraperTest do
              ]
   end
 
-  test "returns the non-http links", %{url: url, html: html} do
-    html_doc = %Document{url: url, contents: html, data: nil}
-
-    {:ok, %Document{data: data}} = PageScraper.scrape(html_doc)
+  test "returns the non-http links", %{document: document} do
+    {:ok, %Document{data: data}} = PageScraper.scrape(document)
 
     assert data.links.non_http == [
              "mailto:hello@example.com",

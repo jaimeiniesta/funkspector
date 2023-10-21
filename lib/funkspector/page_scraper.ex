@@ -19,21 +19,18 @@ defmodule Funkspector.PageScraper do
   #####################
 
   defp scraped_data(%Document{url: url, contents: contents, data: data}) do
-    %{scheme: scheme, host: host} = URI.parse(url)
-
     urls =
       (data[:urls] || %{})
-      |> Map.put_new(:root_url, "#{scheme}://#{host}/")
-      |> Map.put_new(:base_url, base_href(contents, url) || url)
+      |> Map.put_new(:base, base_href(contents, url) || url)
 
     raw_links = raw_links(contents)
 
     {http_links, non_http_links} =
       raw_links
-      |> absolutify(urls.base_url)
+      |> absolutify(urls.base)
       |> http_and_non_http
 
-    {internal_links, external_links} = internal_and_external(http_links, host)
+    {internal_links, external_links} = internal_and_external(http_links, urls[:parsed].host)
 
     links = %{
       raw: raw_links,
@@ -46,8 +43,6 @@ defmodule Funkspector.PageScraper do
 
     (data || %{})
     |> Map.put(:urls, urls)
-    |> Map.put_new(:scheme, scheme)
-    |> Map.put_new(:host, host)
     |> Map.put_new(:links, links)
   end
 

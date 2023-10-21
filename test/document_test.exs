@@ -6,7 +6,7 @@ defmodule Funkspector.DocumentTest do
   import Mock
   import FunkspectorTest.MockedConnections
 
-  @url "http://example.com"
+  @url "http://example.com/page"
   @html "<html></html>"
 
   describe "request" do
@@ -18,7 +18,20 @@ defmodule Funkspector.DocumentTest do
                     url: @url,
                     contents: mocked_html(),
                     data: %{
-                      urls: %{original_url: @url},
+                      urls: %{
+                        original: @url,
+                        parsed: %URI{
+                          scheme: "http",
+                          authority: "example.com",
+                          userinfo: nil,
+                          host: "example.com",
+                          port: 80,
+                          path: "/page",
+                          query: nil,
+                          fragment: nil
+                        },
+                        root: "http://example.com/"
+                      },
                       headers: %{
                         "content-length" => "293427",
                         "content-type" => "text/html;charset=utf-8"
@@ -30,13 +43,32 @@ defmodule Funkspector.DocumentTest do
   end
 
   describe "load" do
-    test "returns a Document with the loaded contents" do
-      assert Document.load(@html) == {:ok, %Document{url: nil, contents: @html, data: nil}}
+    test "requires an URL" do
+      assert Document.load(nil, @html) == {:error, :url_required}
     end
 
     test "returns a Document with the loaded contents and the given url" do
-      assert Document.load(@html, url: @url) ==
-               {:ok, %Document{url: @url, contents: @html, data: nil}}
+      assert Document.load(@url, @html) ==
+               {:ok,
+                %Document{
+                  url: @url,
+                  contents: @html,
+                  data: %{
+                    urls: %{
+                      parsed: %URI{
+                        scheme: "http",
+                        authority: "example.com",
+                        userinfo: nil,
+                        host: "example.com",
+                        port: 80,
+                        path: "/page",
+                        query: nil,
+                        fragment: nil
+                      },
+                      root: "http://example.com/"
+                    }
+                  }
+                }}
     end
   end
 end

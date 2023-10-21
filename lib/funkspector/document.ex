@@ -22,16 +22,16 @@ defmodule Funkspector.Document do
   end
 
   @doc """
-  Returns a document with the given contents and optional root_url.
-
-  Options:
-
-    - `:url` allows to set an URL for the document, which is useful later on for parsing and setting absolute links.
+  Returns a document with the given url and contents.
   """
-  def load(contents, options \\ %{}) do
-    url = options[:url]
+  def load(url, contents) do
+    if is_nil(url) do
+      {:error, :url_required}
+    else
+      data = %{urls: parsed_url(url)}
 
-    {:ok, %Document{contents: contents, url: url}}
+      {:ok, %Document{contents: contents, url: url, data: data}}
+    end
   end
 
   #####################
@@ -53,16 +53,22 @@ defmodule Funkspector.Document do
          final_url
        )
        when status in 200..299 do
+    urls = Map.merge(%{original: original_url}, parsed_url(final_url))
+
+    data = %{urls: urls, headers: Enum.into(headers, %{})}
+
     {:ok,
      %Document{
        url: final_url,
        contents: body,
-       data: %{
-         urls: %{
-           original_url: original_url
-         },
-         headers: Enum.into(headers, %{})
-       }
+       data: data
      }}
+  end
+
+  defp parsed_url(url) do
+    parsed = URI.parse(url)
+    root = "#{parsed.scheme}://#{parsed.host}/"
+
+    %{parsed: parsed, root: root}
   end
 end
