@@ -3,10 +3,10 @@ defmodule Funkspector.SitemapScraper do
   Scrapes an XML sitemap.
   """
 
-  alias Funkspector.Document
-
   import Funkspector.Utils
   import SweetXml
+
+  alias Funkspector.Document
 
   @doc """
   Scrapes the Document contents and returns the data scraped from its XML.
@@ -22,8 +22,7 @@ defmodule Funkspector.SitemapScraper do
   defp scraped_data(%Document{url: url, contents: contents, data: data}) do
     locs = contents |> raw_locs() |> absolutify(url)
 
-    (data || %{})
-    |> Map.put_new(:locs, locs)
+    Map.put_new(data || %{}, :locs, locs)
   end
 
   defp raw_locs(xml) do

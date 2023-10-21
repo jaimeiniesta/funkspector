@@ -3,7 +3,7 @@ defmodule Funkspector do
   Funkspector is a web scraper that lets you extract data from web pages.
   """
 
-  alias Funkspector.{Document, PageScraper, SitemapScraper}
+  alias Funkspector.{Document, PageScraper, SitemapScraper, TextSitemapScraper}
 
   @doc """
   Parses an HTML document.
@@ -56,21 +56,25 @@ defmodule Funkspector do
   end
 
   @doc """
-  Convenience method, this is just a shortcut for `Funkspector.TextSitemapScraper.scrape/1`.
+  Parses a text sitemap.
 
   ## Examples
 
-      iex> { :ok, data } = Funkspector.text_sitemap_scrape("https://rocketvalidator.com/sitemap.txt")
-      iex> length data.lines
+      iex> { :ok, document } = Funkspector.text_sitemap_scrape("https://rocketvalidator.com/sitemap.txt")
+      iex> length document.data.lines
       1238
-      iex> [ first | _ ] = data.lines
-      iex> first
-      "https://rocketvalidator.com/"
+      iex> Enum.take(document.data.lines, 3)
+      ["https://rocketvalidator.com/", "https://rocketvalidator.com/pricing?billing=weekly", "https://rocketvalidator.com/pricing?billing=monthly"]
   """
   def text_sitemap_scrape(url, options \\ %{}) do
     options = Map.merge(default_options(), options)
 
-    Funkspector.TextSitemapScraper.scrape(url, options)
+    with {:ok, document} <- request_or_load_contents(url, options),
+         {:ok, document} <- TextSitemapScraper.scrape(document) do
+      {:ok, document}
+    else
+      error -> error
+    end
   end
 
   def default_options do
