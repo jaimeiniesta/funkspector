@@ -1,15 +1,14 @@
 defmodule PageScraperTest do
   use ExUnit.Case
 
-  alias Funkspector.Document
+  alias Funkspector.{Document, PageScraper}
 
   import FunkspectorTest.MockedConnections, only: [mocked_html: 0, mocked_html_with_base_href: 1]
-
-  alias Funkspector.PageScraper
 
   setup do
     url = "https://example.com/page"
     html = mocked_html()
+
     {:ok, document} = Document.load(url, html)
 
     {:ok, url: url, html: html, document: document}

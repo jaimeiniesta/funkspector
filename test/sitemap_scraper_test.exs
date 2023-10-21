@@ -1,46 +1,55 @@
 defmodule SitemapScraperTest do
   use ExUnit.Case
-  doctest Funkspector.SitemapScraper
 
-  import Mock
-  import FunkspectorTest.MockedConnections
+  import FunkspectorTest.MockedConnections, only: [mocked_xml: 0, malformed_xml: 0]
 
-  import Funkspector.SitemapScraper, only: [scrape: 1]
+  alias Funkspector.{Document, SitemapScraper}
 
-  test "returns :ok for status in 2xx" do
-    for status <- 200..201 do
-      with_mock HTTPoison,
-        get: fn _url, _headers, _options -> successful_response_for_sitemap(status) end do
-        {:ok, _results} = scrape("http://example.com/sitemap.xml")
-      end
-    end
+  setup do
+    url = "https://example.com/sitemap.xml"
+    xml = mocked_xml()
+
+    {:ok, document} = Document.load(url, xml)
+
+    {:ok, url: url, xml: xml, document: document}
   end
 
-  test "returns :error for status other than 2xx" do
-    for status <- [100, 301, 404, 500] do
-      with_mock HTTPoison, get: fn _url, _headers, _options -> unsuccessful_response(status) end do
-        {:error, url, response} = scrape("http://example.com/sitemap.xml")
+  test "scrapes data", %{document: document} do
+    {:ok, document} = SitemapScraper.scrape(document)
 
-        assert url == "http://example.com/sitemap.xml"
-        assert response.status_code == status
-      end
-    end
+    assert document == %Document{
+             url: "https://example.com/sitemap.xml",
+             contents:
+               "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n   <url>\n      <loc>/</loc>\n   </url>\n   <url>\n      <loc>/faqs</loc>\n   </url>\n   <url>\n      <loc>/about</loc>\n   </url>\n   <!--\n   <url>\n      <loc>/commented-out-should-not-be-included</loc>\n   </url>\n   -->\n</urlset>\n",
+             data: %{
+               locs: [
+                 "https://example.com/",
+                 "https://example.com/faqs",
+                 "https://example.com/about"
+               ],
+               urls: %{
+                 parsed: %URI{
+                   scheme: "https",
+                   authority: "example.com",
+                   userinfo: nil,
+                   host: "example.com",
+                   port: 443,
+                   path: "/sitemap.xml",
+                   query: nil,
+                   fragment: nil
+                 },
+                 root: "https://example.com/"
+               }
+             }
+           }
   end
 
-  test "returns the locs, absolutified" do
-    with_mock HTTPoison, get: fn _url, _headers, _options -> successful_response_for_sitemap() end do
-      {:ok, results} = scrape("http://example.com/sitemap.xml")
+  test "returns no locs if the XML could not be parsed", %{url: url} do
+    xml = malformed_xml()
 
-      assert results.locs ==
-               ["http://example.com/", "http://example.com/faqs", "http://example.com/about"]
-    end
-  end
+    {:ok, document} = Document.load(url, xml)
+    {:ok, %Document{data: data}} = SitemapScraper.scrape(document)
 
-  test "returns no location if the XML could not be parsed" do
-    with_mock HTTPoison, get: fn _url, _headers, _options -> malformed_xml_response() end do
-      {:ok, results} = scrape("http://example.com/bad.xml")
-
-      assert results.locs == []
-    end
+    assert data.locs == []
   end
 end
