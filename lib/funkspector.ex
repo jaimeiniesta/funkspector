@@ -114,7 +114,7 @@ defmodule Funkspector do
   defp request_or_load_contents(url, options) do
     case options[:contents] do
       nil -> Document.request(url, options)
-      contents when is_binary(contents) -> Document.load(contents, %{url: url})
+      contents when is_binary(contents) -> Document.load(url, contents)
     end
   end
 end
