@@ -10,17 +10,22 @@ defmodule Funkspector do
 
   This can be used to request a document by passing its URL, like:
 
-    Funkspector.page_scrape("https://jaimeiniesta.com")
+    Funkspector.page_scrape("https://example.com")
 
-  Or to scrape an already loaded document, by passing its HTML contents and base URL
+  Or to scrape an already loaded document, by passing its HTML contents:
 
     Funkspector.page_scrape("https://example.com", contents: "<html>...</html>")
 
-  ## Example: requesting and scraping a document
+  ## Example: request a document
 
       iex> { :ok, document } = Funkspector.page_scrape("https://jaimeiniesta.com")
       iex> Enum.take(document.data.links.http.external, 3)
       ["http://www.archive.elixirconf.eu/elixirconf2016", "https://steadyhq.com/", "https://stuart.com/"]
+
+  ## Example: site not found
+
+      iex> Funkspector.page_scrape("https://notfoundwebsite.com")
+      {:error, "https://notfoundwebsite.com", %HTTPoison.Error{reason: :nxdomain, id: nil}}
   """
   def page_scrape(url, options \\ %{}) do
     options = Map.merge(default_options(), options)
@@ -36,7 +41,15 @@ defmodule Funkspector do
   @doc """
   Parses an XML sitemap.
 
-  ## Examples
+  This can be used to request a document by passing its URL, like:
+
+    Funkspector.sitemap_scrape("https://example.com")
+
+  Or to scrape an already loaded document, by passing its XML contents:
+
+    Funkspector.sitemap_scrape("https://example.com/sitemap.xml", contents: "<xml>...</xml>")
+
+  ## Example
 
       iex> { :ok, document } = Funkspector.sitemap_scrape("https://rocketvalidator.com/sitemap.xml")
       iex> length document.data.locs
@@ -58,7 +71,15 @@ defmodule Funkspector do
   @doc """
   Parses a text sitemap.
 
-  ## Examples
+  This can be used to request a document by passing its URL, like:
+
+    Funkspector.text_sitemap_scrape("https://example.com")
+
+  Or to scrape an already loaded document, by passing its text contents:
+
+    Funkspector.text_sitemap_scrape("https://example.com/sitemap.txt", contents: "...")
+
+  ## Example
 
       iex> { :ok, document } = Funkspector.text_sitemap_scrape("https://rocketvalidator.com/sitemap.txt")
       iex> length document.data.lines
