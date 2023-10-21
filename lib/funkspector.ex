@@ -28,14 +28,7 @@ defmodule Funkspector do
       {:error, "https://notfoundwebsite.com", %HTTPoison.Error{reason: :nxdomain, id: nil}}
   """
   def page_scrape(url, options \\ %{}) do
-    options = Map.merge(default_options(), options)
-
-    with {:ok, document} <- request_or_load_contents(url, options),
-         {:ok, document} <- PageScraper.scrape(document) do
-      {:ok, document}
-    else
-      error -> error
-    end
+    scrape(url, options, &PageScraper.scrape/1)
   end
 
   @doc """
@@ -58,14 +51,7 @@ defmodule Funkspector do
       ["https://rocketvalidator.com/", "https://rocketvalidator.com/pricing?billing=weekly", "https://rocketvalidator.com/pricing?billing=monthly"]
   """
   def sitemap_scrape(url, options \\ %{}) do
-    options = Map.merge(default_options(), options)
-
-    with {:ok, document} <- request_or_load_contents(url, options),
-         {:ok, document} <- SitemapScraper.scrape(document) do
-      {:ok, document}
-    else
-      error -> error
-    end
+    scrape(url, options, &SitemapScraper.scrape/1)
   end
 
   @doc """
@@ -88,14 +74,7 @@ defmodule Funkspector do
       ["https://rocketvalidator.com/", "https://rocketvalidator.com/pricing?billing=weekly", "https://rocketvalidator.com/pricing?billing=monthly"]
   """
   def text_sitemap_scrape(url, options \\ %{}) do
-    options = Map.merge(default_options(), options)
-
-    with {:ok, document} <- request_or_load_contents(url, options),
-         {:ok, document} <- TextSitemapScraper.scrape(document) do
-      {:ok, document}
-    else
-      error -> error
-    end
+    scrape(url, options, &TextSitemapScraper.scrape/1)
   end
 
   def default_options do
@@ -110,6 +89,15 @@ defmodule Funkspector do
   #####################
   # Private functions #
   #####################
+
+  def scrape(url, options, scraping_function) do
+    options = Map.merge(default_options(), options)
+
+    case request_or_load_contents(url, options) do
+      {:ok, document} -> scraping_function.(document)
+      error -> error
+    end
+  end
 
   defp request_or_load_contents(url, options) do
     case options[:contents] do
