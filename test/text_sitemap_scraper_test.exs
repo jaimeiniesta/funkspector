@@ -29,7 +29,7 @@ defmodule TextSitemapScraperTest do
                  "http://docs.example.com"
                ],
                urls: %{
-                 parsed: %URI{
+                 parsed: %{
                    scheme: "https",
                    authority: "example.com",
                    userinfo: nil,

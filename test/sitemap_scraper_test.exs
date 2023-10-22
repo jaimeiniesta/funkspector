@@ -28,7 +28,7 @@ defmodule SitemapScraperTest do
                  "https://example.com/about"
                ],
                urls: %{
-                 parsed: %URI{
+                 parsed: %{
                    scheme: "https",
                    authority: "example.com",
                    userinfo: nil,

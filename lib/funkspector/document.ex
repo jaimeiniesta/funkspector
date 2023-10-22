@@ -66,7 +66,7 @@ defmodule Funkspector.Document do
   end
 
   defp parsed_url(url) do
-    parsed = URI.parse(url)
+    parsed = url |> URI.parse() |> Map.from_struct()
     root = "#{parsed.scheme}://#{parsed.host}/"
 
     %{parsed: parsed, root: root}

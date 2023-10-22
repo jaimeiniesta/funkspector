@@ -22,7 +22,7 @@ defmodule PageScraperTest do
              contents: html,
              data: %{
                urls: %{
-                 parsed: %URI{
+                 parsed: %{
                    scheme: "https",
                    authority: "example.com",
                    userinfo: nil,

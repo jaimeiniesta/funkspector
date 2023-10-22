@@ -20,7 +20,7 @@ defmodule Funkspector.DocumentTest do
                     data: %{
                       urls: %{
                         original: @url,
-                        parsed: %URI{
+                        parsed: %{
                           scheme: "http",
                           authority: "example.com",
                           userinfo: nil,
@@ -55,7 +55,7 @@ defmodule Funkspector.DocumentTest do
                   contents: @html,
                   data: %{
                     urls: %{
-                      parsed: %URI{
+                      parsed: %{
                         scheme: "http",
                         authority: "example.com",
                         userinfo: nil,

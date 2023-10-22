@@ -65,7 +65,7 @@ defmodule FunkspectorTest do
                    urls: %{
                      base: "https://example.com",
                      original: "https://example.com",
-                     parsed: %URI{
+                     parsed: %{
                        scheme: "https",
                        authority: "example.com",
                        userinfo: nil,
@@ -137,7 +137,7 @@ defmodule FunkspectorTest do
                    urls: %{
                      base: "http://example.com/redirect/3",
                      original: "http://example.com/redirect/1",
-                     parsed: %URI{
+                     parsed: %{
                        scheme: "http",
                        authority: "example.com",
                        userinfo: nil,
@@ -185,7 +185,7 @@ defmodule FunkspectorTest do
                    ],
                    urls: %{
                      original: "https://example.com/sitemap.xml",
-                     parsed: %URI{
+                     parsed: %{
                        scheme: "https",
                        authority: "example.com",
                        userinfo: nil,
@@ -229,7 +229,7 @@ defmodule FunkspectorTest do
                    locs: [],
                    urls: %{
                      original: "https://example.com/sitemap.txt",
-                     parsed: %URI{
+                     parsed: %{
                        scheme: "https",
                        authority: "example.com",
                        userinfo: nil,
@@ -277,7 +277,7 @@ defmodule FunkspectorTest do
                  },
                  urls: %{
                    base: "https://example.com",
-                   parsed: %URI{
+                   parsed: %{
                      scheme: "https",
                      authority: "example.com",
                      userinfo: nil,
@@ -312,7 +312,7 @@ defmodule FunkspectorTest do
                  "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <url>\n    <loc>/faqs</loc>\n  </url>\n</urlset>\n",
                data: %{
                  urls: %{
-                   parsed: %URI{
+                   parsed: %{
                      scheme: "https",
                      authority: "example.com",
                      userinfo: nil,
@@ -345,7 +345,7 @@ defmodule FunkspectorTest do
                data: %{
                  lines: ["https://example.com/faqs", "https://example.com/terms"],
                  urls: %{
-                   parsed: %URI{
+                   parsed: %{
                      scheme: "https",
                      authority: "example.com",
                      userinfo: nil,
