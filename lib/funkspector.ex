@@ -3,63 +3,106 @@ defmodule Funkspector do
   Funkspector is a web scraper that lets you extract data from web pages.
   """
 
+  alias Funkspector.{Document, PageScraper, SitemapScraper, TextSitemapScraper}
+
   @doc """
-  Convenience method, this is just a shortcut for `Funkspector.PageScraper.scrape/1`.
+  Parses an HTML document.
 
-  ## Examples
+  This can be used to request a document by passing its URL, like:
 
-      iex> { :ok, data } = Funkspector.page_scrape("https://jaimeiniesta.com")
-      iex> data.host
-      "jaimeiniesta.com"
+    Funkspector.page_scrape("https://example.com")
+
+  Or to scrape an already loaded document, by passing its HTML contents:
+
+    Funkspector.page_scrape("https://example.com", contents: "<html>...</html>")
+
+  ## Example: request a document
+
+      iex> { :ok, document } = Funkspector.page_scrape("https://jaimeiniesta.com")
+      iex> Enum.take(document.data.links.http.external, 3)
+      ["http://www.archive.elixirconf.eu/elixirconf2016", "https://steadyhq.com/", "https://stuart.com/"]
+
+  ## Example: site not found
+
+      iex> Funkspector.page_scrape("https://notfoundwebsite.com")
+      {:error, "https://notfoundwebsite.com", %HTTPoison.Error{reason: :nxdomain, id: nil}}
   """
   def page_scrape(url, options \\ %{}) do
-    options = Map.merge(default_options(), options)
-
-    Funkspector.PageScraper.scrape(url, options)
+    scrape(url, options, &PageScraper.scrape/1)
   end
 
   @doc """
-  Convenience method, this is just a shortcut for `Funkspector.SitemapScraper.scrape/1`.
+  Parses an XML sitemap.
 
-  ## Examples
+  This can be used to request a document by passing its URL, like:
 
-      iex> { :ok, data } = Funkspector.sitemap_scrape("https://rocketvalidator.com/sitemap.xml")
-      iex> length data.locs
+    Funkspector.sitemap_scrape("https://example.com")
+
+  Or to scrape an already loaded document, by passing its XML contents:
+
+    Funkspector.sitemap_scrape("https://example.com/sitemap.xml", contents: "<xml>...</xml>")
+
+  ## Example
+
+      iex> { :ok, document } = Funkspector.sitemap_scrape("https://rocketvalidator.com/sitemap.xml")
+      iex> length document.data.locs
       1238
-      iex> [ first | _ ] = data.locs
-      iex> first
-      "https://rocketvalidator.com/"
+      iex> Enum.take(document.data.locs, 3)
+      ["https://rocketvalidator.com/", "https://rocketvalidator.com/pricing?billing=weekly", "https://rocketvalidator.com/pricing?billing=monthly"]
   """
   def sitemap_scrape(url, options \\ %{}) do
-    options = Map.merge(default_options(), options)
-
-    Funkspector.SitemapScraper.scrape(url, options)
+    scrape(url, options, &SitemapScraper.scrape/1)
   end
 
   @doc """
-  Convenience method, this is just a shortcut for `Funkspector.TextSitemapScraper.scrape/1`.
+  Parses a text sitemap.
 
-  ## Examples
+  This can be used to request a document by passing its URL, like:
 
-      iex> { :ok, data } = Funkspector.text_sitemap_scrape("https://rocketvalidator.com/sitemap.txt")
-      iex> length data.lines
+    Funkspector.text_sitemap_scrape("https://example.com")
+
+  Or to scrape an already loaded document, by passing its text contents:
+
+    Funkspector.text_sitemap_scrape("https://example.com/sitemap.txt", contents: "...")
+
+  ## Example
+
+      iex> { :ok, document } = Funkspector.text_sitemap_scrape("https://rocketvalidator.com/sitemap.txt")
+      iex> length document.data.lines
       1238
-      iex> [ first | _ ] = data.lines
-      iex> first
-      "https://rocketvalidator.com/"
+      iex> Enum.take(document.data.lines, 3)
+      ["https://rocketvalidator.com/", "https://rocketvalidator.com/pricing?billing=weekly", "https://rocketvalidator.com/pricing?billing=monthly"]
   """
   def text_sitemap_scrape(url, options \\ %{}) do
-    options = Map.merge(default_options(), options)
-
-    Funkspector.TextSitemapScraper.scrape(url, options)
+    scrape(url, options, &TextSitemapScraper.scrape/1)
   end
 
-  def default_options do
+  #####################
+  # Private functions #
+  #####################
+
+  defp default_options do
     %{
       hackney: [:insecure],
       timeout: 28_000,
       recv_timeout: 25_000,
       user_agent: "Funkspector/0.6.0 (+https://hex.pm/packages/funkspector)"
     }
+  end
+
+  def scrape(url, options, scraping_function) do
+    options = Map.merge(default_options(), options)
+
+    case request_or_load_contents(url, options) do
+      {:ok, document} -> scraping_function.(document)
+      error -> error
+    end
+  end
+
+  defp request_or_load_contents(url, options) do
+    case options[:contents] do
+      nil -> Document.request(url, options)
+      contents when is_binary(contents) -> Document.load(url, contents)
+    end
   end
 end

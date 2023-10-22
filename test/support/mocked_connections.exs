@@ -32,8 +32,8 @@ defmodule FunkspectorTest.MockedConnections do
      }}
   end
 
-  def http_error_response(url) do
-    {:error, url, %HTTPoison.Error{id: nil, reason: :nxdomain}}
+  def http_error_response() do
+    {:error, %HTTPoison.Error{id: nil, reason: :nxdomain}}
   end
 
   def redirect_from(url) do
