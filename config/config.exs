@@ -28,7 +28,3 @@ import Config
 # here (which is why it is important to import them last).
 #
 #     import_config "#{Mix.env}.exs"
-
-config :funkspector,
-  url_regexp:
-    ~r/\Ahttp(s?)\:\/\/[a-zñäëïöüáéíóúàèìòùâêîôû0-9\-_]+([\.]{1}[a-zñäëïöüáéíóúàèìòùâêîôû0-9\-]+)*\.[a-z0-9]{2,5}(([0-9]{1,5})?(:(\d{1,5}))?\/?.*)?\z/i

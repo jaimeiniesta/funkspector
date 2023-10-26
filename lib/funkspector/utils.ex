@@ -3,7 +3,7 @@ defmodule Funkspector.Utils do
   Common functionality for the scrapers.
   """
 
-  @url_regexp Application.compile_env(:funkspector, :url_regexp)
+  @url_regexp ~r/\Ahttp(s?)\:\/\/[a-zñäëïöüáéíóúàèìòùâêîôû0-9\-_]+([\.]{1}[a-zñäëïöüáéíóúàèìòùâêîôû0-9\-]+)*\.[a-z0-9]{2,5}(([0-9]{1,5})?(:(\d{1,5}))?\/?.*)?\z/i
 
   @doc """
   Given a collection of URLs and a base URL, absolutifies the relative links.
