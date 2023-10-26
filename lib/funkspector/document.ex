@@ -8,6 +8,8 @@ defmodule Funkspector.Document do
   alias __MODULE__
   alias Funkspector.Resolver
 
+  import Funkspector.Utils, only: [valid_url?: 1]
+
   @doc """
   Retrieves the url and returns a document with its contents.
   """
@@ -25,12 +27,12 @@ defmodule Funkspector.Document do
   Returns a document with the given url and contents.
   """
   def load(url, contents) do
-    if is_nil(url) do
-      {:error, :url_required}
-    else
+    if valid_url?(url) do
       data = %{urls: parsed_url(url)}
 
       {:ok, %Document{contents: contents, url: url, data: data}}
+    else
+      {:error, url, :invalid_url}
     end
   end
 

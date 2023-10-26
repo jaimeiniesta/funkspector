@@ -3,6 +3,8 @@ defmodule Funkspector.Resolver do
   Provides a method to follow URL redirections, returning the final URL.
   """
 
+  import Funkspector.Utils, only: [valid_url?: 1]
+
   # In case of these errors related with SSL we'll retry setting a TLS version, as per this post:
   # http://campezzi.ghost.io/httpoison-ssl-connection-closed/
   @reasons_to_retry_with_ssl_version [
@@ -31,7 +33,11 @@ defmodule Funkspector.Resolver do
       "https://github.com/"
   """
   def resolve(url, options \\ %{}) do
-    resolve_url(url, 5, %{}, options)
+    if valid_url?(url) do
+      resolve_url(url, 5, %{}, options)
+    else
+      {:error, url, :invalid_url}
+    end
   end
 
   #####################

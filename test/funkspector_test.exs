@@ -8,6 +8,35 @@ defmodule FunkspectorTest do
 
   alias Funkspector.Document
 
+  @invalid_urls [
+    "Warning: Element name h2<audio< cannot be represented as XML 1.0.",
+    nil,
+    "   ",
+    25
+  ]
+
+  @html_doc """
+  <html>
+    <body>
+      <a href="/faqs">FAQs</a>
+    </body>
+  </html>
+  """
+
+  @xml_doc """
+  <?xml version="1.0" encoding="UTF-8"?>
+  <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+    <url>
+      <loc>/faqs</loc>
+    </url>
+  </urlset>
+  """
+
+  @txt_doc """
+  /faqs
+  /terms
+  """
+
   describe "page_scrape" do
     test "scrapes page if it exists" do
       with_mock HTTPoison, get: fn _url, _headers, _options -> successful_response() end do
@@ -161,6 +190,13 @@ defmodule FunkspectorTest do
                  {:error, "https://example.com", %HTTPoison.Error{reason: :nxdomain, id: nil}}
       end
     end
+
+    test "returns error if URL is invalid" do
+      for url <- @invalid_urls do
+        assert Funkspector.page_scrape(url) == {:error, url, :invalid_url}
+        assert Funkspector.page_scrape(url, %{contents: @html_doc}) == {:error, url, :invalid_url}
+      end
+    end
   end
 
   describe "sitemap_scrape" do
@@ -209,16 +245,24 @@ defmodule FunkspectorTest do
                   %HTTPoison.Error{reason: :nxdomain, id: nil}}
       end
     end
+
+    test "returns error if URL is invalid" do
+      for url <- @invalid_urls do
+        assert Funkspector.sitemap_scrape(url) == {:error, url, :invalid_url}
+
+        assert Funkspector.sitemap_scrape(url, %{contents: @xml_doc}) ==
+                 {:error, url, :invalid_url}
+      end
+    end
   end
 
   describe "text_sitemap_scrape" do
     test "scrapes text sitemap if it exists" do
       with_mock HTTPoison,
         get: fn _url, _headers, _options -> successful_response_for_text_sitemap() end do
-        {:ok, document} = Funkspector.sitemap_scrape("https://example.com/sitemap.txt")
+        {:ok, document} = Funkspector.text_sitemap_scrape("https://example.com/sitemap.txt")
 
         assert document == %Document{
-                 url: "https://example.com/sitemap.txt",
                  contents:
                    "http://example.com/\nhttp://example.com/about\n\n/faqs\n\nhttp://docs.example.com\n",
                  data: %{
@@ -226,22 +270,28 @@ defmodule FunkspectorTest do
                      "content-length" => "293427",
                      "content-type" => "text/plain;charset=utf-8"
                    },
-                   locs: [],
                    urls: %{
                      original: "https://example.com/sitemap.txt",
                      parsed: %{
-                       scheme: "https",
                        authority: "example.com",
-                       userinfo: nil,
+                       fragment: nil,
                        host: "example.com",
-                       port: 443,
                        path: "/sitemap.txt",
+                       port: 443,
                        query: nil,
-                       fragment: nil
+                       scheme: "https",
+                       userinfo: nil
                      },
                      root: "https://example.com/"
-                   }
-                 }
+                   },
+                   lines: [
+                     "http://example.com/",
+                     "http://example.com/about",
+                     "https://example.com/faqs",
+                     "http://docs.example.com"
+                   ]
+                 },
+                 url: "https://example.com/sitemap.txt"
                }
       end
     end
@@ -253,19 +303,20 @@ defmodule FunkspectorTest do
                   %HTTPoison.Error{reason: :nxdomain, id: nil}}
       end
     end
+
+    test "returns error if URL is invalid" do
+      for url <- @invalid_urls do
+        assert Funkspector.text_sitemap_scrape(url) == {:error, url, :invalid_url}
+
+        assert Funkspector.text_sitemap_scrape(url, %{contents: @txt_doc}) ==
+                 {:error, url, :invalid_url}
+      end
+    end
   end
 
   describe "loading a document contents" do
     test "page_scrape" do
-      doc = """
-      <html>
-        <body>
-          <a href="/faqs">FAQs</a>
-        </body>
-      </html>
-      """
-
-      {:ok, document} = Funkspector.page_scrape("https://example.com", %{contents: doc})
+      {:ok, document} = Funkspector.page_scrape("https://example.com", %{contents: @html_doc})
 
       assert document == %Document{
                contents: "<html>\n  <body>\n    <a href=\"/faqs\">FAQs</a>\n  </body>\n</html>\n",
@@ -295,17 +346,8 @@ defmodule FunkspectorTest do
     end
 
     test "sitemap_scrape" do
-      doc = """
-      <?xml version="1.0" encoding="UTF-8"?>
-      <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-        <url>
-          <loc>/faqs</loc>
-        </url>
-      </urlset>
-      """
-
       {:ok, document} =
-        Funkspector.sitemap_scrape("https://example.com/sitemap.xml", %{contents: doc})
+        Funkspector.sitemap_scrape("https://example.com/sitemap.xml", %{contents: @xml_doc})
 
       assert document == %Document{
                contents:
@@ -331,13 +373,8 @@ defmodule FunkspectorTest do
     end
 
     test "text_sitemap_scrape" do
-      doc = """
-      /faqs
-      /terms
-      """
-
       {:ok, document} =
-        Funkspector.text_sitemap_scrape("https://example.com/sitemap.txt", %{contents: doc})
+        Funkspector.text_sitemap_scrape("https://example.com/sitemap.txt", %{contents: @txt_doc})
 
       assert document == %Document{
                url: "https://example.com/sitemap.txt",

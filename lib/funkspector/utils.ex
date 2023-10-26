@@ -3,6 +3,8 @@ defmodule Funkspector.Utils do
   Common functionality for the scrapers.
   """
 
+  @url_regexp ~r/\Ahttp(s?)\:\/\/[a-zñäëïöüáéíóúàèìòùâêîôû0-9\-_]+([\.]{1}[a-zñäëïöüáéíóúàèìòùâêîôû0-9\-]+)*\.[a-z0-9]{2,5}(([0-9]{1,5})?(:(\d{1,5}))?\/?.*)?\z/i
+
   @doc """
   Given a collection of URLs and a base URL, absolutifies the relative links.
 
@@ -19,4 +21,27 @@ defmodule Funkspector.Utils do
   def absolutify(link, base_url) when is_binary(link) do
     URI.merge(base_url, link) |> to_string()
   end
+
+  @doc """
+  Returns a boolean telling if the URL seems valid according to the regexp.
+
+  ## Examples
+
+  iex> Funkspector.Utils.valid_url?("https://example.com")
+  true
+
+  iex> Funkspector.Utils.valid_url?("joe@example.com")
+  false
+
+  iex> Funkspector.Utils.valid_url?(nil)
+  false
+
+  iex> Funkspector.Utils.valid_url?("  ")
+  false
+  """
+  def valid_url?(url) when is_binary(url) do
+    Regex.match?(@url_regexp, url)
+  end
+
+  def valid_url?(_), do: false
 end

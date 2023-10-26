@@ -7,9 +7,23 @@ defmodule Funkspector.DocumentTest do
   import FunkspectorTest.MockedConnections
 
   @url "http://example.com/page"
+
   @html "<html></html>"
 
+  @invalid_urls [
+    "Warning: Element name h2<audio< cannot be represented as XML 1.0.",
+    nil,
+    "   ",
+    25
+  ]
+
   describe "request" do
+    test "validates URL" do
+      for url <- @invalid_urls do
+        assert Document.request(url) == {:error, url, :invalid_url}
+      end
+    end
+
     test "returns a Document with the contents retrieved from the given url" do
       with_mock HTTPoison, get: fn _url, _headers, _options -> successful_response(200) end do
         assert Document.request(@url) ==
@@ -43,8 +57,10 @@ defmodule Funkspector.DocumentTest do
   end
 
   describe "load" do
-    test "requires an URL" do
-      assert Document.load(nil, @html) == {:error, :url_required}
+    test "validates URL" do
+      for url <- @invalid_urls do
+        assert Document.load(url, @html) == {:error, url, :invalid_url}
+      end
     end
 
     test "returns a Document with the loaded contents and the given url" do

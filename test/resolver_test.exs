@@ -6,6 +6,13 @@ defmodule Funkspector.ResolverTest do
   import FunkspectorTest.MockedConnections
   import Funkspector.Resolver
 
+  @invalid_urls [
+    "Warning: Element name h2<audio< cannot be represented as XML 1.0.",
+    nil,
+    "   ",
+    25
+  ]
+
   test "resolves URLs" do
     with_mock HTTPoison, get: fn url, _headers, _options -> redirect_from(url) end do
       {:ok, "http://example.com/redirect/3", _} = resolve("http://example.com/redirect/1")
@@ -31,16 +38,22 @@ defmodule Funkspector.ResolverTest do
     end
   end
 
-  test "returns :error if host does not exist" do
+  test "returns error if host does not exist" do
     with_mock HTTPoison, get: fn _url, _headers, _options -> http_error_response() end do
       {:error, "http://this_does_not_exist.com", %HTTPoison.Error{id: nil, reason: :nxdomain}} =
         resolve("http://this_does_not_exist.com")
     end
   end
 
-  test "returns :error if host exists but page cant be found" do
+  test "returns error if host exists but page cant be found" do
     with_mock HTTPoison, get: fn _url, _headers, _options -> unsuccessful_response(404) end do
       {:error, "https:/example.com/not_existent", _} = resolve("https:/example.com/not_existent")
+    end
+  end
+
+  test "returns error if URL is invalid" do
+    for url <- @invalid_urls do
+      assert resolve(url) == {:error, url, :invalid_url}
     end
   end
 end
