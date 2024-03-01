@@ -4,7 +4,7 @@ defmodule Funkspector.Mixfile do
   def project do
     [
       app: :funkspector,
-      version: "1.1.1",
+      version: "1.2.0",
       elixir: "~> 1.14",
       description: "Web page inspector for Elixir",
       package: package(),
