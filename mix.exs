@@ -33,7 +33,7 @@ defmodule Funkspector.Mixfile do
   defp deps do
     [
       {:hackney, "~> 1.20.1"},
-      {:httpoison, "~> 2.1.0"},
+      {:httpoison, "~> 2.2.1"},
       {:floki, "~> 0.35.1"},
       {:sweet_xml, "~> 0.7.4"},
       {:mock, "~> 0.3.8", only: :test},
