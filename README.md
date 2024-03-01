@@ -8,6 +8,14 @@ Funkspector is a web scraper that lets you extract data from web pages and XML o
 
 ## Usage
 
+### Resolving URLs
+
+Simply pass Funkspector the URL to resolve and it will return its final URL after following redirections:
+
+```elixir
+iex> { :ok, final_url, _ } = Funkspector.resolve("http://github.com")
+```
+
 ### Page Scraping
 
 Simply pass Funkspector the URL of a web page to inspect and it will return its scraped data:

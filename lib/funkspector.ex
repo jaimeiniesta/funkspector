@@ -3,7 +3,22 @@ defmodule Funkspector do
   Funkspector is a web scraper that lets you extract data from web pages.
   """
 
-  alias Funkspector.{Document, PageScraper, SitemapScraper, TextSitemapScraper}
+  alias Funkspector.{Resolver, Document, PageScraper, SitemapScraper, TextSitemapScraper}
+
+  @doc """
+  Given a URL, it will follow the redirections and return the final URL and the final response.
+
+  ## Examples
+
+      iex> { :ok, final_url, _response } = Funkspector.resolve("http://github.com")
+      iex> final_url
+      "https://github.com/"
+  """
+  def resolve(url, options \\ %{}) do
+    options = Map.merge(default_options(), options)
+
+    Resolver.resolve(url, options)
+  end
 
   @doc """
   Parses an HTML document.
