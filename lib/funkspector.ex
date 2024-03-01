@@ -46,9 +46,9 @@ defmodule Funkspector do
 
       iex> { :ok, document } = Funkspector.sitemap_scrape("https://rocketvalidator.com/sitemap.xml")
       iex> length document.data.locs
-      1238
+      1244
       iex> Enum.take(document.data.locs, 3)
-      ["https://rocketvalidator.com/", "https://rocketvalidator.com/pricing?billing=weekly", "https://rocketvalidator.com/pricing?billing=monthly"]
+      ["https://rocketvalidator.com/", "https://rocketvalidator.com/who", "https://rocketvalidator.com/html-validation"]
   """
   def sitemap_scrape(url, options \\ %{}) do
     scrape(url, options, &SitemapScraper.scrape/1)
@@ -69,9 +69,9 @@ defmodule Funkspector do
 
       iex> { :ok, document } = Funkspector.text_sitemap_scrape("https://rocketvalidator.com/sitemap.txt")
       iex> length document.data.lines
-      1238
+      1244
       iex> Enum.take(document.data.lines, 3)
-      ["https://rocketvalidator.com/", "https://rocketvalidator.com/pricing?billing=weekly", "https://rocketvalidator.com/pricing?billing=monthly"]
+      ["https://rocketvalidator.com/", "https://rocketvalidator.com/who", "https://rocketvalidator.com/html-validation"]
   """
   def text_sitemap_scrape(url, options \\ %{}) do
     scrape(url, options, &TextSitemapScraper.scrape/1)
