@@ -34,7 +34,7 @@ defmodule Funkspector.Mixfile do
     [
       {:hackney, "~> 1.20.1"},
       {:httpoison, "~> 2.2.1"},
-      {:floki, "~> 0.35.1"},
+      {:floki, "~> 0.35.4"},
       {:sweet_xml, "~> 0.7.4"},
       {:mock, "~> 0.3.8", only: :test},
       {:ex_doc, ">= 0.30.9", only: :dev},
