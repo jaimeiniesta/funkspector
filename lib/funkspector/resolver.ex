@@ -51,9 +51,12 @@ defmodule Funkspector.Resolver do
     # SSL cert verification disabled until this bug is solved:
     # https://github.com/edgurgel/httpoison/issues/93
     case HTTPoison.get(url, ["User-Agent": user_agent(options)], Map.to_list(options)) do
-      {:ok, response = %{status_code: status, headers: headers}} when status in 300..399 ->
+      {:ok, response = %{status_code: status, headers: headers}} when status in 301..399 ->
         to = URI.merge(url, location_from(headers)) |> to_string
         resolve_url(to, max_redirects - 1, deflated(response), options)
+
+      {:ok, response = %{status_code: 300}} ->
+        {:error, url, deflated(response)}
 
       {:ok, response = %{status_code: status}} when status < 200 or status >= 400 ->
         {:error, url, deflated(response)}

@@ -24,6 +24,14 @@ defmodule FunkspectorTest.MockedConnections do
     {:ok, %{status_code: status, headers: mocked_xml_headers(), body: malformed_xml()}}
   end
 
+  def multiple_choices_response() do
+    {:ok,
+     %{
+       status_code: 300,
+       headers: [{"Content-length", "0"}, {"Content-length", "0"}]
+     }}
+  end
+
   def redirection_response(location_key, to_url) do
     {:ok,
      %{
