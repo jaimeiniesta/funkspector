@@ -47,7 +47,8 @@ defmodule Funkspector.ResolverTest do
 
   test "returns error if host exists but page cant be found" do
     with_mock HTTPoison, get: fn _url, _headers, _options -> unsuccessful_response(404) end do
-      {:error, "https://example.com/not_existent", _} = resolve("https://example.com/not_existent")
+      {:error, "https://example.com/not_existent", _} =
+        resolve("https://example.com/not_existent")
     end
   end
 

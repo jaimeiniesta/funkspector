@@ -9,7 +9,7 @@ defmodule Funkspector.Resolver do
   # http://campezzi.ghost.io/httpoison-ssl-connection-closed/
   @reasons_to_retry_with_ssl_version [
     %HTTPoison.Error{id: nil, reason: :closed},
-    %HTTPoison.Error{id: nil, reason: {:tls_alert, 'handshake failure'}},
+    %HTTPoison.Error{id: nil, reason: {:tls_alert, ~c"handshake failure"}},
     %HTTPoison.Error{
       id: nil,
       reason: {:options, {:sslv3, {:versions, [:"tlsv1.2", :"tlsv1.1", :tlsv1, :sslv3]}}}
@@ -19,7 +19,7 @@ defmodule Funkspector.Resolver do
       reason:
         {:tls_alert,
          {:handshake_failure,
-          'TLS client: In state hello received SERVER ALERT: Fatal - Handshake Failure\\n'}}
+          ~c"TLS client: In state hello received SERVER ALERT: Fatal - Handshake Failure\\n"}}
     }
   ]
 
