@@ -67,4 +67,35 @@ defmodule Funkspector.ResolverTest do
       assert resolve(url) == {:error, url, :invalid_url}
     end
   end
+
+  test "includes basic auth header when basic_auth option is provided" do
+    with_mock HTTPoison, get: fn _url, headers, _options ->
+      assert {"Authorization", "Basic dXNlcjpwYXNz"} in headers
+      successful_response()
+    end do
+      {:ok, "http://example.com/", _} =
+        resolve("http://example.com/", %{basic_auth: {"user", "pass"}})
+    end
+  end
+
+  test "includes custom user agent when user_agent option is provided" do
+    with_mock HTTPoison, get: fn _url, headers, _options ->
+      assert {"User-Agent", "Custom Bot 1.0"} in headers
+      successful_response()
+    end do
+      {:ok, "http://example.com/", _} =
+        resolve("http://example.com/", %{user_agent: "Custom Bot 1.0"})
+    end
+  end
+
+  test "includes user agent and basic auth when both are provided" do
+    with_mock HTTPoison, get: fn _url, headers, _options ->
+      assert {"User-Agent", "Custom Bot 1.0"} in headers
+      assert {"Authorization", "Basic dXNlcjpwYXNz"} in headers
+      successful_response()
+    end do
+      {:ok, "http://example.com/", _} =
+        resolve("http://example.com/", %{user_agent: "Custom Bot 1.0", basic_auth: {"user", "pass"}})
+    end
+  end
 end

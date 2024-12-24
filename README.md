@@ -13,7 +13,7 @@ Funkspector is a web scraper that lets you extract data from web pages and XML o
 Simply pass Funkspector the URL to resolve and it will return its final URL after following redirections:
 
 ```elixir
-iex> { :ok, final_url, _ } = Funkspector.resolve("http://github.com")
+iex> { :ok, final_url, _ } = Funkspector.resolve("http://example.com")
 ```
 
 ### Page Scraping
@@ -37,16 +37,31 @@ It also supports TXT sitemaps:
 ```elixir
 iex> { :ok, document } = Funkspector.text_sitemap_scrape("https://rocketvalidator.com/sitemap.txt")
 ```
-### Custom options
+### Custom User Agent
 
-You can pass in options to customize the timeout and User Agent string.
+You can specify a custom User Agent string using the `user_agent` option.
 
-For example, you could use:
-
+Example:
 ```elixir
-  Funkspector.page_scrape("http://github.com", %{recv_timeout: 5_000, user_agent: "My Bot"})
-  Funkspector.sitemap_scrape("http://rocketvalidator.com/sitemap.xml", %{recv_timeout: 5_000, user_agent: "My Bot"})
-  Funkspector.text_sitemap_scrape("http://rocketvalidator.com/sitemap.txt", %{recv_timeout: 5_000, user_agent: "My Bot"})
+  Funkspector.page_scrape("http://example.com", %{user_agent: "My Bot"})
+```
+
+### Basic Auth
+
+You can specify a basic auth username and password using the `basic_auth` option, which will be passed as an `Authorization` request header.
+
+Example:
+```elixir
+  Funkspector.page_scrape("http://example.com", %{basic_auth: {"user", "secret"}})
+```
+
+### Setting a custom timeout
+
+Use `recv_timeout` to set a custom timeout for the request, in milliseconds.
+
+Example:
+```elixir
+  Funkspector.page_scrape("http://example.com", %{recv_timeout: 5_000})
 ```
 
 ### Loading a document contents instead of requesting
