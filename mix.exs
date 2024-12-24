@@ -18,16 +18,9 @@ defmodule Funkspector.Mixfile do
   #
   # Type "mix help compile.app" for more information
   def application do
-    applications = [:logger, :httpoison, :floki, :sweet_xml]
-
-    applications =
-      if Mix.env() == :test do
-        [:mock | applications]
-      else
-        applications
-      end
-
-    [applications: applications]
+    [
+      extra_applications: [:logger]
+    ]
   end
 
   # Dependencies can be Hex packages:
@@ -43,11 +36,11 @@ defmodule Funkspector.Mixfile do
     [
       {:hackney, "~> 1.20.1"},
       {:httpoison, "~> 2.2.1"},
-      {:floki, "~> 0.36.1"},
+      {:floki, "~> 0.37.0"},
       {:sweet_xml, "~> 0.7.4"},
       {:mock, "~> 0.3.9", only: :test},
-      {:ex_doc, ">= 0.30.9", only: :dev},
-      {:credo, "~> 1.7.1", only: :dev}
+      {:ex_doc, ">= 0.36.0", only: :dev, runtime: false},
+      {:credo, "~> 1.7.10", only: [:dev, :test], runtime: false}
     ]
   end
 

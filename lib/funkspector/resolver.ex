@@ -129,6 +129,7 @@ defmodule Funkspector.Resolver do
         {username, password} ->
           auth = Base.encode64("#{username}:#{password}")
           [{"Authorization", "Basic #{auth}"} | headers]
+
         _ ->
           headers
       end
