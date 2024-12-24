@@ -4,7 +4,7 @@ defmodule Funkspector.Mixfile do
   def project do
     [
       app: :funkspector,
-      version: "1.3.0",
+      version: "1.4.0",
       elixir: "~> 1.17",
       description: "Web page inspector for Elixir",
       package: package(),
@@ -18,7 +18,16 @@ defmodule Funkspector.Mixfile do
   #
   # Type "mix help compile.app" for more information
   def application do
-    [applications: [:logger, :httpoison, :floki, :sweet_xml, :mock]]
+    applications = [:logger, :httpoison, :floki, :sweet_xml]
+
+    applications =
+      if Mix.env() == :test do
+        [:mock | applications]
+      else
+        applications
+      end
+
+    [applications: applications]
   end
 
   # Dependencies can be Hex packages:
@@ -36,7 +45,7 @@ defmodule Funkspector.Mixfile do
       {:httpoison, "~> 2.2.1"},
       {:floki, "~> 0.36.1"},
       {:sweet_xml, "~> 0.7.4"},
-      {:mock, "~> 0.3.8", only: :test},
+      {:mock, "~> 0.3.9", only: :test},
       {:ex_doc, ">= 0.30.9", only: :dev},
       {:credo, "~> 1.7.1", only: :dev}
     ]

@@ -48,9 +48,12 @@ defmodule Funkspector.Resolver do
     do: {:ok, url, response}
 
   defp resolve_url(url, max_redirects, _response, options) do
+    {request_headers, request_options} = request_headers_and_options(options)
+
     # SSL cert verification disabled until this bug is solved:
     # https://github.com/edgurgel/httpoison/issues/93
-    case HTTPoison.get(url, ["User-Agent": user_agent(options)], Map.to_list(options)) do
+
+    case HTTPoison.get(url, request_headers, Map.to_list(request_options)) do
       {:ok, response = %{status_code: status, headers: headers}} when status in 301..399 ->
         to = URI.merge(url, location_from(headers)) |> to_string
         resolve_url(to, max_redirects - 1, deflated(response), options)
@@ -107,8 +110,29 @@ defmodule Funkspector.Resolver do
     end
   end
 
-  # Provides a browser-like user agent
-  defp user_agent(options) do
-    options[:user_agent]
+  defp request_headers_and_options(options) do
+    headers = request_headers(options)
+
+    options =
+      options
+      |> Map.delete(:user_agent)
+      |> Map.delete(:basic_auth)
+
+    {headers, options}
+  end
+
+  defp request_headers(options) do
+    headers = [{"User-Agent", options[:user_agent]}]
+
+    headers =
+      case options[:basic_auth] do
+        {username, password} ->
+          auth = Base.encode64("#{username}:#{password}")
+          [{"Authorization", "Basic #{auth}"} | headers]
+        _ ->
+          headers
+      end
+
+    headers
   end
 end
