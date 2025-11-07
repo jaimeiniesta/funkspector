@@ -3,7 +3,8 @@ defmodule PageScraperTest do
 
   alias Funkspector.{Document, PageScraper}
 
-  import FunkspectorTest.MockedConnections, only: [mocked_html: 0, mocked_html_with_base_href: 1]
+  import FunkspectorTest.MockedConnections,
+    only: [mocked_html: 0, mocked_html_with_base_href: 1, mocked_html_with_canonical_url: 1]
 
   setup do
     url = "https://example.com/page"
@@ -33,7 +34,8 @@ defmodule PageScraperTest do
                    fragment: nil
                  },
                  base: "https://example.com/page",
-                 root: "https://example.com/"
+                 root: "https://example.com/",
+                 canonical: nil
                },
                links: %{
                  http: %{
@@ -141,6 +143,87 @@ defmodule PageScraperTest do
                "https://example.com/a/nested/directory/relative-2",
                "https://example.com/a/nested/directory/relative-3?q=some#results"
              ]
+  end
+
+  test "includes canonical_url if present" do
+    url = "https://example.com/blog?page=2"
+    canonical_url = "https://example.com/blog"
+
+    html = mocked_html_with_canonical_url(canonical_url)
+
+    {:ok, document} = Document.load(url, html)
+
+    {:ok, %Document{data: data}} = PageScraper.scrape(document)
+
+    assert data.urls == %{
+             root: "https://example.com/",
+             base: "https://example.com/blog?page=2",
+             canonical: canonical_url,
+             parsed: %{
+               port: 443,
+               scheme: "https",
+               path: "/blog",
+               host: "example.com",
+               userinfo: nil,
+               fragment: nil,
+               query: "page=2",
+               authority: "example.com"
+             }
+           }
+  end
+
+  test "absolutifies canonical url if it's relative" do
+    url = "https://example.com/blog?page=2"
+    relative_canonical_url = "/blog"
+    expected_canonical_url = "https://example.com/blog"
+
+    html = mocked_html_with_canonical_url(relative_canonical_url)
+
+    {:ok, document} = Document.load(url, html)
+
+    {:ok, %Document{data: data}} = PageScraper.scrape(document)
+
+    assert data.urls == %{
+             root: "https://example.com/",
+             base: "https://example.com/blog?page=2",
+             canonical: expected_canonical_url,
+             parsed: %{
+               port: 443,
+               scheme: "https",
+               path: "/blog",
+               host: "example.com",
+               userinfo: nil,
+               fragment: nil,
+               query: "page=2",
+               authority: "example.com"
+             }
+           }
+  end
+
+  test "returns nil canonical_url if not present" do
+    url = "https://example.com/blog?page=2"
+
+    html = mocked_html()
+
+    {:ok, document} = Document.load(url, html)
+
+    {:ok, %Document{data: data}} = PageScraper.scrape(document)
+
+    assert data.urls == %{
+             root: "https://example.com/",
+             base: "https://example.com/blog?page=2",
+             canonical: nil,
+             parsed: %{
+               port: 443,
+               scheme: "https",
+               path: "/blog",
+               host: "example.com",
+               userinfo: nil,
+               fragment: nil,
+               query: "page=2",
+               authority: "example.com"
+             }
+           }
   end
 
   test "relative links are calculated from the base url when it is specified in the document" do

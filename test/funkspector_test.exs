@@ -104,7 +104,8 @@ defmodule FunkspectorTest do
                        query: nil,
                        fragment: nil
                      },
-                     root: "https://example.com/"
+                     root: "https://example.com/",
+                     canonical: nil
                    }
                  }
                }
@@ -176,7 +177,8 @@ defmodule FunkspectorTest do
                        query: nil,
                        fragment: nil
                      },
-                     root: "http://example.com/"
+                     root: "http://example.com/",
+                     canonical: nil
                    }
                  },
                  url: "http://example.com/redirect/3"
@@ -338,7 +340,8 @@ defmodule FunkspectorTest do
                      query: nil,
                      fragment: nil
                    },
-                   root: "https://example.com/"
+                   root: "https://example.com/",
+                   canonical: nil
                  }
                },
                url: "https://example.com"

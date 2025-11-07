@@ -22,6 +22,7 @@ defmodule Funkspector.PageScraper do
     urls =
       (data[:urls] || %{})
       |> Map.put_new(:base, base_href(contents, url) || url)
+      |> Map.put_new(:canonical, canonical_url(contents, url))
 
     raw_links = raw_links(contents)
 
@@ -44,6 +45,17 @@ defmodule Funkspector.PageScraper do
     (data || %{})
     |> Map.put(:urls, urls)
     |> Map.put_new(:links, links)
+  end
+
+  defp canonical_url(html, url) do
+    case html
+         |> Floki.parse_document!()
+         |> Floki.find("link[rel=canonical]")
+         |> Floki.attribute("href")
+         |> List.first() do
+      nil -> nil
+      canonical_href -> absolutify(canonical_href, url)
+    end
   end
 
   defp base_href(html, url) do

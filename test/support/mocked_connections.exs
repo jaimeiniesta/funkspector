@@ -101,9 +101,14 @@ defmodule FunkspectorTest.MockedConnections do
     """
   end
 
-  def mocked_html_with_base_href(url) do
+  def mocked_html_with_base_href(base_url) do
     mocked_html()
-    |> String.replace("<head>", "<head><base href=\"#{url}\">")
+    |> String.replace("<head>", "<head><base href=\"#{base_url}\">")
+  end
+
+  def mocked_html_with_canonical_url(canonical_url) do
+    mocked_html()
+    |> String.replace("<head>", "<head><link rel=\"canonical\" href=\"#{canonical_url}\">")
   end
 
   def mocked_xml do
