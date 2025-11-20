@@ -20,6 +20,13 @@ defmodule Funkspector.Resolver do
         {:tls_alert,
          {:handshake_failure,
           ~c"TLS client: In state hello received SERVER ALERT: Fatal - Handshake Failure\\n"}}
+    },
+    %HTTPoison.Error{
+      reason:
+        {:tls_alert,
+         {:handshake_failure,
+          ~c"TLS client: In state hello received SERVER ALERT: Fatal - Handshake Failure\\n"}},
+      id: nil
     }
   ]
 
