@@ -4,7 +4,7 @@ defmodule Funkspector.Mixfile do
   def project do
     [
       app: :funkspector,
-      version: "1.5.0",
+      version: "1.6.0",
       elixir: "~> 1.17",
       description: "Web page inspector for Elixir",
       package: package(),
@@ -34,6 +34,7 @@ defmodule Funkspector.Mixfile do
   # Type "mix help deps" for more examples and options
   defp deps do
     [
+      # Set hackney to 1.21 until https://github.com/edgurgel/httpoison/issues/501 is fixed
       {:hackney, "~> 1.21.0"},
       {:httpoison, "~> 2.3.0"},
       {:floki, "~> 0.37.0"},
