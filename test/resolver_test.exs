@@ -104,4 +104,10 @@ defmodule Funkspector.ResolverTest do
         })
     end
   end
+
+  # This fails with hackney greater than 1.21.0
+  test "https://github.com/edgurgel/httpoison/issues/501 regression test" do
+    assert {:ok, "https://www.freedomfromtorture.org/", %HTTPoison.Response{status_code: 200}} =
+             resolve("https://www.freedomfromtorture.org/")
+  end
 end
