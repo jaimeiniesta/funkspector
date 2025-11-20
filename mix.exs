@@ -34,7 +34,7 @@ defmodule Funkspector.Mixfile do
   # Type "mix help deps" for more examples and options
   defp deps do
     [
-      {:hackney, "~> 1.25.0"},
+      {:hackney, "~> 1.21.0"},
       {:httpoison, "~> 2.3.0"},
       {:floki, "~> 0.37.0"},
       {:sweet_xml, "~> 0.7.5"},
