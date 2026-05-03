@@ -1,6 +1,10 @@
 defmodule Funkspector.Resolver do
   @moduledoc """
-  Provides a method to follow URL redirections, returning the final URL.
+  Follows HTTP redirections and returns the final URL and response.
+
+  Handles up to 5 redirect hops, supports SSL/TLS version fallback
+  (retrying with TLSv1.2 on handshake failures), automatic gzip
+  decompression, basic authentication, and custom User-Agent headers.
   """
 
   import Funkspector.Utils, only: [valid_url?: 1]
@@ -24,7 +28,20 @@ defmodule Funkspector.Resolver do
   ]
 
   @doc """
-  Given a URL, it will follow the redirections and return the final URL and the final response.
+  Follows redirections for the given URL and returns the final URL and response.
+
+  Validates the URL, then follows up to 5 HTTP redirects (status 301-399).
+  Returns an error for invalid URLs, non-2xx final responses, and HTTP 300
+  (Multiple Choices). On certain SSL errors, retries with TLSv1.2.
+
+  ## Options
+
+    * `:basic_auth` - `{username, password}` tuple for HTTP Basic Authentication
+    * `:user_agent` - custom User-Agent header string
+    * `:ssl` - SSL options passed to hackney
+    * `:hackney` - options passed directly to hackney
+    * `:timeout` - connection timeout in milliseconds
+    * `:recv_timeout` - receive timeout in milliseconds
 
   ## Examples
 
@@ -32,6 +49,8 @@ defmodule Funkspector.Resolver do
       iex> final_url
       "https://github.com/"
   """
+  @spec resolve(String.t() | any(), map()) ::
+          {:ok, String.t(), map()} | {:error, String.t() | any(), any()}
   def resolve(url, options \\ %{}) do
     if valid_url?(url) do
       resolve_url(url, 5, %{}, options)

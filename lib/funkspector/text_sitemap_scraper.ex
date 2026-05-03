@@ -1,6 +1,10 @@
 defmodule Funkspector.TextSitemapScraper do
   @moduledoc """
-  Scrapes a text sitemap.
+  Extracts URLs from a plain text sitemap.
+
+  Parses text sitemaps where each line contains a single URL.
+  Empty lines and whitespace are stripped, duplicates are removed,
+  and relative URLs are converted to absolute.
   """
 
   import Funkspector.Utils
@@ -8,8 +12,12 @@ defmodule Funkspector.TextSitemapScraper do
   alias Funkspector.Document
 
   @doc """
-  Scrapes the Document contents and returns the data scraped from the text lines.
+  Scrapes the Document contents and returns URLs extracted from the text lines.
+
+  Populates the document's `data` map with a `:lines` key containing a
+  deduplicated list of absolute URLs, one per non-empty line in the text.
   """
+  @spec scrape(Document.t()) :: {:ok, Document.t()}
   def scrape(%Document{} = document) do
     {:ok, %{document | data: scraped_data(document)}}
   end

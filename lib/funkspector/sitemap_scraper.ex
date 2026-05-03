@@ -1,6 +1,11 @@
 defmodule Funkspector.SitemapScraper do
   @moduledoc """
-  Scrapes an XML sitemap.
+  Extracts URLs from an XML sitemap.
+
+  Parses XML sitemaps conforming to the sitemaps.org protocol, extracting
+  `<loc>` elements from `<url>` entries using XPath. Relative URLs are
+  converted to absolute. Gracefully handles malformed XML by returning
+  an empty list.
   """
 
   import Funkspector.Utils
@@ -9,8 +14,13 @@ defmodule Funkspector.SitemapScraper do
   alias Funkspector.Document
 
   @doc """
-  Scrapes the Document contents and returns the data scraped from its XML.
+  Scrapes the Document contents and returns URLs extracted from the XML sitemap.
+
+  Populates the document's `data` map with a `:locs` key containing a
+  deduplicated list of absolute URLs found in `//url/loc` elements.
+  Returns an empty list if the XML cannot be parsed.
   """
+  @spec scrape(Document.t()) :: {:ok, Document.t()}
   def scrape(%Document{} = document) do
     {:ok, %{document | data: scraped_data(document)}}
   end

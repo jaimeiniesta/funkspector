@@ -1,6 +1,10 @@
 defmodule Funkspector.PageScraper do
   @moduledoc """
-  Scrapes an HTML page.
+  Extracts links and metadata from an HTML page.
+
+  Parses the HTML to find all `<a href>` links, then classifies them as
+  internal/external HTTP links or non-HTTP links (mailto, javascript, ftp, etc.).
+  Also extracts the `<base href>` and `<link rel="canonical">` values.
   """
 
   import Funkspector.Utils
@@ -8,8 +12,18 @@ defmodule Funkspector.PageScraper do
   alias Funkspector.Document
 
   @doc """
-  Scrapes the Document contents and returns the data scraped from its HTML.
+  Scrapes the Document contents and returns the data extracted from its HTML.
+
+  Populates the document's `data` map with:
+
+    * `urls.base` - the base URL (from `<base href>` or the document URL)
+    * `urls.canonical` - the canonical URL if present, otherwise `nil`
+    * `links.raw` - all raw `href` values found in `<a>` tags (deduplicated)
+    * `links.http.internal` - absolute HTTP links matching the document's host
+    * `links.http.external` - absolute HTTP links to other hosts
+    * `links.non_http` - non-HTTP links (mailto, javascript, ftp, etc.)
   """
+  @spec scrape(Document.t()) :: {:ok, Document.t()}
   def scrape(%Document{} = document) do
     {:ok, %{document | data: scraped_data(document)}}
   end
