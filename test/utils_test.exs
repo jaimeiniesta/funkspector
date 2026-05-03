@@ -67,7 +67,7 @@ defmodule UtilsTest do
     end
 
     test "returns true for internationalized domain names" do
-      assert Utils.valid_url?("https://ejemplo.com.ñ")
+      assert Utils.valid_url?("https://ejemplo.ñandú.com")
       assert Utils.valid_url?("https://ñandú.com")
       assert Utils.valid_url?("https://münchen.de")
     end
@@ -75,6 +75,13 @@ defmodule UtilsTest do
     test "returns true for subdomains" do
       assert Utils.valid_url?("https://sub.example.com")
       assert Utils.valid_url?("https://a.b.c.example.com")
+    end
+
+    test "returns false for invalid TLDs" do
+      refute Utils.valid_url?("https://example.x")
+      refute Utils.valid_url?("https://example.c")
+      refute Utils.valid_url?("https://example.ñ")
+      refute Utils.valid_url?("https://example.ññ")
     end
 
     test "returns false for non-HTTP URLs" do
