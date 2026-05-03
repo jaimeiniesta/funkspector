@@ -1,4 +1,4 @@
-ExUnit.start()
+ExUnit.start(exclude: [:integration])
 
 {:ok, files} = File.ls("./test/support")
 

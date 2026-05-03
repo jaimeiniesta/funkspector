@@ -12,7 +12,7 @@ Funkspector is an Elixir library (Hex package) for web scraping. It extracts dat
 # Install dependencies
 mix deps.get
 
-# Run all tests
+# Run unit tests (default, no network required)
 mix test
 
 # Run a single test file
@@ -20,6 +20,15 @@ mix test test/page_scraper_test.exs
 
 # Run a specific test by line number
 mix test test/page_scraper_test.exs:15
+
+# Run integration tests (hit live URLs, require network)
+mix test --include integration
+
+# Run only integration tests
+mix test --include integration --only integration
+
+# Run everything (unit + integration)
+mix test --include integration
 
 # Lint (CI runs these)
 mix compile --warnings-as-errors
@@ -59,7 +68,10 @@ Funkspector (public API) → Resolver → Document → Scraper
 
 ## Testing Conventions
 
-Tests use the `Mock` library to mock `HTTPoison.get/3` calls. Mock responses are defined in `test/support/mocked_connections.exs`. No real HTTP requests are made during tests.
+Tests are split into two categories:
+
+### Unit tests (default)
+Run with `mix test`. No network access required. All HTTP calls are mocked using the `Mock` library. Mock responses are defined in `test/support/mocked_connections.exs`.
 
 Pattern used across test files:
 ```elixir
@@ -67,3 +79,12 @@ with_mock HTTPoison, [get: fn(_url, _headers, _options) -> MockedConnections.suc
   # test assertions
 end
 ```
+
+### Integration tests
+Tagged with `@tag :integration` or `@moduletag :integration`. These hit live URLs and require network access. Excluded by default via `test_helper.exs`.
+
+Run with `mix test --include integration`.
+
+Integration tests live in:
+- `test/integration_test.exs` — doctests for `Funkspector` and `Funkspector.Resolver` (live URL examples from `@doc`)
+- `test/resolver_test.exs` — hackney regression test (tagged individually with `@tag :integration`)

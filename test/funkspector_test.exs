@@ -1,8 +1,6 @@
 defmodule FunkspectorTest do
   use ExUnit.Case
 
-  doctest Funkspector
-
   import Mock
   import FunkspectorTest.MockedConnections
 
@@ -298,10 +296,10 @@ defmodule FunkspectorTest do
       end
     end
 
-    test "retuns error if page does not exist" do
+    test "returns error if page does not exist" do
       with_mock HTTPoison, get: fn _url, _headers, _options -> http_error_response() end do
-        assert Funkspector.sitemap_scrape("https://example.com/sitemap.xml") ==
-                 {:error, "https://example.com/sitemap.xml",
+        assert Funkspector.text_sitemap_scrape("https://example.com/sitemap.txt") ==
+                 {:error, "https://example.com/sitemap.txt",
                   %HTTPoison.Error{reason: :nxdomain, id: nil}}
       end
     end
@@ -312,6 +310,28 @@ defmodule FunkspectorTest do
 
         assert Funkspector.text_sitemap_scrape(url, %{contents: @txt_doc}) ==
                  {:error, url, :invalid_url}
+      end
+    end
+  end
+
+  describe "resolve" do
+    test "follows redirections and returns final URL" do
+      with_mock HTTPoison, get: fn url, _headers, _options -> redirect_from(url) end do
+        {:ok, final_url, _response} = Funkspector.resolve("http://example.com/redirect/1")
+        assert final_url == "http://example.com/redirect/3"
+      end
+    end
+
+    test "returns error if URL is invalid" do
+      for url <- @invalid_urls do
+        assert Funkspector.resolve(url) == {:error, url, :invalid_url}
+      end
+    end
+
+    test "returns error if host does not exist" do
+      with_mock HTTPoison, get: fn _url, _headers, _options -> http_error_response() end do
+        assert Funkspector.resolve("https://example.com") ==
+                 {:error, "https://example.com", %HTTPoison.Error{reason: :nxdomain, id: nil}}
       end
     end
   end

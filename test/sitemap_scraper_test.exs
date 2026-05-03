@@ -52,4 +52,85 @@ defmodule SitemapScraperTest do
 
     assert data.locs == []
   end
+
+  test "returns empty locs for empty XML sitemap" do
+    xml = """
+    <?xml version="1.0" encoding="UTF-8"?>
+    <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+    </urlset>
+    """
+
+    {:ok, document} = Document.load("https://example.com/sitemap.xml", xml)
+    {:ok, %Document{data: data}} = SitemapScraper.scrape(document)
+
+    assert data.locs == []
+  end
+
+  test "absolutifies relative locs", %{url: url} do
+    xml = """
+    <?xml version="1.0" encoding="UTF-8"?>
+    <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+      <url><loc>/page1</loc></url>
+      <url><loc>/page2</loc></url>
+    </urlset>
+    """
+
+    {:ok, document} = Document.load(url, xml)
+    {:ok, %Document{data: data}} = SitemapScraper.scrape(document)
+
+    assert data.locs == [
+             "https://example.com/page1",
+             "https://example.com/page2"
+           ]
+  end
+
+  test "deduplicates locs" do
+    xml = """
+    <?xml version="1.0" encoding="UTF-8"?>
+    <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+      <url><loc>/page</loc></url>
+      <url><loc>/page</loc></url>
+      <url><loc>/other</loc></url>
+    </urlset>
+    """
+
+    {:ok, document} = Document.load("https://example.com/sitemap.xml", xml)
+    {:ok, %Document{data: data}} = SitemapScraper.scrape(document)
+
+    assert data.locs == [
+             "https://example.com/page",
+             "https://example.com/other"
+           ]
+  end
+
+  test "handles XML with absolute URLs" do
+    xml = """
+    <?xml version="1.0" encoding="UTF-8"?>
+    <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+      <url><loc>https://example.com/page1</loc></url>
+      <url><loc>https://example.com/page2</loc></url>
+    </urlset>
+    """
+
+    {:ok, document} = Document.load("https://example.com/sitemap.xml", xml)
+    {:ok, %Document{data: data}} = SitemapScraper.scrape(document)
+
+    assert data.locs == [
+             "https://example.com/page1",
+             "https://example.com/page2"
+           ]
+  end
+
+  test "returns empty locs for completely empty content" do
+    {:ok, document} = Document.load("https://example.com/sitemap.xml", "")
+    {:ok, %Document{data: data}} = SitemapScraper.scrape(document)
+
+    assert data.locs == []
+  end
+
+  test "ignores commented-out URLs", %{document: document} do
+    {:ok, %Document{data: data}} = SitemapScraper.scrape(document)
+
+    refute "https://example.com/commented-out-should-not-be-included" in data.locs
+  end
 end

@@ -54,6 +54,35 @@ defmodule Funkspector.DocumentTest do
                   }}
       end
     end
+
+    test "returns error for non-2xx response status" do
+      with_mock HTTPoison, get: fn _url, _headers, _options -> server_error_response(500) end do
+        {:error, @url, response} = Document.request(@url)
+        assert response.status_code == 500
+      end
+    end
+
+    test "returns error for 403 forbidden" do
+      with_mock HTTPoison, get: fn _url, _headers, _options -> forbidden_response() end do
+        {:error, @url, response} = Document.request(@url)
+        assert response.status_code == 403
+      end
+    end
+
+    test "returns error when host cannot be resolved" do
+      with_mock HTTPoison, get: fn _url, _headers, _options -> http_error_response() end do
+        assert Document.request(@url) ==
+                 {:error, @url, %HTTPoison.Error{id: nil, reason: :nxdomain}}
+      end
+    end
+
+    test "preserves original URL when following redirects" do
+      with_mock HTTPoison, get: fn url, _headers, _options -> redirect_from(url) end do
+        {:ok, document} = Document.request("http://example.com/redirect/1")
+        assert document.url == "http://example.com/redirect/3"
+        assert document.data.urls.original == "http://example.com/redirect/1"
+      end
+    end
   end
 
   describe "load" do
@@ -85,6 +114,24 @@ defmodule Funkspector.DocumentTest do
                     }
                   }
                 }}
+    end
+
+    test "does not include original URL in loaded document" do
+      {:ok, document} = Document.load(@url, @html)
+      refute Map.has_key?(document.data.urls, :original)
+    end
+
+    test "does not include headers in loaded document" do
+      {:ok, document} = Document.load(@url, @html)
+      refute Map.has_key?(document.data, :headers)
+    end
+
+    test "parses URL with path and query" do
+      url = "https://example.com/page?q=test"
+      {:ok, document} = Document.load(url, @html)
+      assert document.data.urls.parsed.path == "/page"
+      assert document.data.urls.parsed.query == "q=test"
+      assert document.data.urls.root == "https://example.com/"
     end
   end
 end

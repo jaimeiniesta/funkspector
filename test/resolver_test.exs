@@ -1,6 +1,5 @@
 defmodule Funkspector.ResolverTest do
   use ExUnit.Case
-  doctest Funkspector.Resolver
 
   import Mock
   import FunkspectorTest.MockedConnections
@@ -105,7 +104,97 @@ defmodule Funkspector.ResolverTest do
     end
   end
 
+  test "returns error for server error status codes" do
+    with_mock HTTPoison,
+      get: fn _url, _headers, _options -> {:ok, %{status_code: 500, body: "error"}} end do
+      {:error, "https://example.com/", _} = resolve("https://example.com/")
+    end
+  end
+
+  test "returns error for 403 forbidden" do
+    with_mock HTTPoison,
+      get: fn _url, _headers, _options -> {:ok, %{status_code: 403, body: "forbidden"}} end do
+      {:error, "https://example.com/secret", _} = resolve("https://example.com/secret")
+    end
+  end
+
+  test "decompresses gzip-encoded responses" do
+    with_mock HTTPoison, get: fn _url, _headers, _options -> gzip_response() end do
+      {:ok, "https://example.com/", response} = resolve("https://example.com/")
+      assert response.body == mocked_html()
+    end
+  end
+
+  test "retries with TLSv1.2 on SSL closed error" do
+    call_count = :counters.new(1, [:atomics])
+
+    with_mock HTTPoison,
+      get: fn _url, _headers, options ->
+        :counters.add(call_count, 1, 1)
+        count = :counters.get(call_count, 1)
+
+        if count == 1 do
+          # First call fails with SSL error
+          ssl_closed_error()
+        else
+          # Retry with SSL option should include ssl version
+          assert Keyword.get(options, :ssl) == [versions: [:"tlsv1.2"]]
+          successful_response()
+        end
+      end do
+      {:ok, "https://example.com/", _} = resolve("https://example.com/")
+      assert :counters.get(call_count, 1) == 2
+    end
+  end
+
+  test "returns error on SSL failure when already retried with ssl option" do
+    with_mock HTTPoison,
+      get: fn _url, _headers, _options ->
+        ssl_closed_error()
+      end do
+      {:error, "https://example.com/", _} =
+        resolve("https://example.com/", %{ssl: [versions: [:"tlsv1.2"]]})
+    end
+  end
+
+  test "retries with TLSv1.2 on SSL handshake failure" do
+    call_count = :counters.new(1, [:atomics])
+
+    with_mock HTTPoison,
+      get: fn _url, _headers, options ->
+        :counters.add(call_count, 1, 1)
+        count = :counters.get(call_count, 1)
+
+        if count == 1 do
+          ssl_handshake_error()
+        else
+          assert Keyword.get(options, :ssl) == [versions: [:"tlsv1.2"]]
+          successful_response()
+        end
+      end do
+      {:ok, "https://example.com/", _} = resolve("https://example.com/")
+      assert :counters.get(call_count, 1) == 2
+    end
+  end
+
+  test "stops following redirects after 5 hops" do
+    with_mock HTTPoison, get: fn url, _headers, _options -> long_redirect_chain(url) end do
+      # Starts at /chain/1, follows 5 hops (max_redirects decrements each time),
+      # arriving at /chain/6 which returns a 200 response on the 5th redirect hop.
+      {:ok, final_url, _} = resolve("http://example.com/chain/1")
+      assert final_url == "http://example.com/chain/6"
+    end
+  end
+
+  test "returns error for 1xx status codes" do
+    with_mock HTTPoison,
+      get: fn _url, _headers, _options -> {:ok, %{status_code: 100, body: ""}} end do
+      {:error, "https://example.com/", _} = resolve("https://example.com/")
+    end
+  end
+
   # This fails with hackney greater than 1.21.0
+  @tag :integration
   test "https://github.com/edgurgel/httpoison/issues/501 regression test" do
     assert {:ok, "https://www.freedomfromtorture.org/", %HTTPoison.Response{status_code: 200}} =
              resolve("https://www.freedomfromtorture.org/")

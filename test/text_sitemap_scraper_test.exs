@@ -44,4 +44,69 @@ defmodule TextSitemapScraperTest do
              }
            }
   end
+
+  test "handles empty text content" do
+    {:ok, document} = Document.load("https://example.com/sitemap.txt", "")
+    {:ok, %Document{data: data}} = TextSitemapScraper.scrape(document)
+
+    assert data.lines == []
+  end
+
+  test "handles whitespace-only content" do
+    {:ok, document} = Document.load("https://example.com/sitemap.txt", "   \n  \n   ")
+    {:ok, %Document{data: data}} = TextSitemapScraper.scrape(document)
+
+    assert data.lines == []
+  end
+
+  test "handles single URL" do
+    {:ok, document} = Document.load("https://example.com/sitemap.txt", "https://example.com/page")
+    {:ok, %Document{data: data}} = TextSitemapScraper.scrape(document)
+
+    assert data.lines == ["https://example.com/page"]
+  end
+
+  test "deduplicates URLs" do
+    text = "/page\n/page\n/other\n"
+    {:ok, document} = Document.load("https://example.com/sitemap.txt", text)
+    {:ok, %Document{data: data}} = TextSitemapScraper.scrape(document)
+
+    assert data.lines == [
+             "https://example.com/page",
+             "https://example.com/other"
+           ]
+  end
+
+  test "absolutifies relative URLs" do
+    text = "/about\n/contact\n"
+    {:ok, document} = Document.load("https://example.com/sitemap.txt", text)
+    {:ok, %Document{data: data}} = TextSitemapScraper.scrape(document)
+
+    assert data.lines == [
+             "https://example.com/about",
+             "https://example.com/contact"
+           ]
+  end
+
+  test "trims whitespace from URLs" do
+    text = "  /about  \n  /contact  \n"
+    {:ok, document} = Document.load("https://example.com/sitemap.txt", text)
+    {:ok, %Document{data: data}} = TextSitemapScraper.scrape(document)
+
+    assert data.lines == [
+             "https://example.com/about",
+             "https://example.com/contact"
+           ]
+  end
+
+  test "skips blank lines between URLs" do
+    text = "/page1\n\n\n/page2\n\n"
+    {:ok, document} = Document.load("https://example.com/sitemap.txt", text)
+    {:ok, %Document{data: data}} = TextSitemapScraper.scrape(document)
+
+    assert data.lines == [
+             "https://example.com/page1",
+             "https://example.com/page2"
+           ]
+  end
 end

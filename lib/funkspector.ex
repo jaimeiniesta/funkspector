@@ -1,12 +1,22 @@
 defmodule Funkspector do
   @moduledoc """
-  Funkspector is a web scraper that lets you extract data from web pages.
+  A web scraper that extracts data from HTML pages, XML sitemaps, and text sitemaps.
+
+  Provides four public functions:
+
+    * `resolve/2` - follows URL redirections and returns the final URL
+    * `page_scrape/2` - parses an HTML page and extracts links
+    * `sitemap_scrape/2` - parses an XML sitemap and extracts URLs
+    * `text_sitemap_scrape/2` - parses a text sitemap and extracts URLs
+
+  All scrape functions accept an optional `contents:` keyword in the options
+  map to skip the HTTP request and scrape pre-fetched content instead.
   """
 
   alias Funkspector.{Resolver, Document, PageScraper, SitemapScraper, TextSitemapScraper}
 
   @doc """
-  Given a URL, it will follow the redirections and return the final URL and the final response.
+  Follows redirections for the given URL, returning the final URL and response.
 
   ## Examples
 
@@ -14,6 +24,8 @@ defmodule Funkspector do
       iex> final_url
       "https://github.com/"
   """
+  @spec resolve(String.t(), map()) ::
+          {:ok, String.t(), map()} | {:error, String.t() | any(), any()}
   def resolve(url, options \\ %{}) do
     options = Map.merge(default_options(), options)
 
@@ -21,15 +33,15 @@ defmodule Funkspector do
   end
 
   @doc """
-  Parses an HTML document.
+  Parses an HTML document, extracting links and metadata.
 
-  This can be used to request a document by passing its URL, like:
+  Makes an HTTP request to the URL (following redirects), then parses the HTML
+  to extract internal/external links, raw links, non-HTTP links, canonical URL,
+  and base href.
 
-    Funkspector.page_scrape("https://example.com")
+  Pass `contents:` in the options map to scrape pre-fetched HTML instead:
 
-  Or to scrape an already loaded document, by passing its HTML contents:
-
-    Funkspector.page_scrape("https://example.com", contents: "<html>...</html>")
+      Funkspector.page_scrape("https://example.com", %{contents: "<html>...</html>"})
 
   ## Example: request a document
 
@@ -42,52 +54,56 @@ defmodule Funkspector do
       iex> Funkspector.page_scrape("https://notfoundwebsite.com")
       {:error, "https://notfoundwebsite.com", %HTTPoison.Error{reason: :nxdomain, id: nil}}
   """
+  @spec page_scrape(String.t(), map()) ::
+          {:ok, Document.t()} | {:error, String.t() | any(), any()}
   def page_scrape(url, options \\ %{}) do
     scrape(url, options, &PageScraper.scrape/1)
   end
 
   @doc """
-  Parses an XML sitemap.
+  Parses an XML sitemap, extracting the list of URLs.
 
-  This can be used to request a document by passing its URL, like:
+  Makes an HTTP request to the URL, then parses the XML to extract all
+  `<loc>` elements from `<url>` entries.
 
-    Funkspector.sitemap_scrape("https://example.com")
+  Pass `contents:` in the options map to scrape pre-fetched XML instead:
 
-  Or to scrape an already loaded document, by passing its XML contents:
-
-    Funkspector.sitemap_scrape("https://example.com/sitemap.xml", contents: "<xml>...</xml>")
+      Funkspector.sitemap_scrape("https://example.com/sitemap.xml", %{contents: "<xml>...</xml>"})
 
   ## Example
 
       iex> { :ok, document } = Funkspector.sitemap_scrape("https://rocketvalidator.com/sitemap.xml")
-      iex> length document.data.locs
-      2243
-      iex> Enum.take(document.data.locs, 3)
-      ["https://rocketvalidator.com/", "https://rocketvalidator.com/html-validation", "https://rocketvalidator.com/accessibility-validation"]
+      iex> length(document.data.locs) > 0
+      true
+      iex> hd(document.data.locs)
+      "https://rocketvalidator.com/"
   """
+  @spec sitemap_scrape(String.t(), map()) ::
+          {:ok, Document.t()} | {:error, String.t() | any(), any()}
   def sitemap_scrape(url, options \\ %{}) do
     scrape(url, options, &SitemapScraper.scrape/1)
   end
 
   @doc """
-  Parses a text sitemap.
+  Parses a plain text sitemap, extracting the list of URLs.
 
-  This can be used to request a document by passing its URL, like:
+  Makes an HTTP request to the URL, then splits the text by newlines to
+  extract one URL per line.
 
-    Funkspector.text_sitemap_scrape("https://example.com")
+  Pass `contents:` in the options map to scrape pre-fetched text instead:
 
-  Or to scrape an already loaded document, by passing its text contents:
-
-    Funkspector.text_sitemap_scrape("https://example.com/sitemap.txt", contents: "...")
+      Funkspector.text_sitemap_scrape("https://example.com/sitemap.txt", %{contents: "..."})
 
   ## Example
 
       iex> { :ok, document } = Funkspector.text_sitemap_scrape("https://rocketvalidator.com/sitemap.txt")
-      iex> length document.data.lines
-      2243
-      iex> Enum.take(document.data.lines, 3)
-      ["https://rocketvalidator.com/", "https://rocketvalidator.com/html-validation", "https://rocketvalidator.com/accessibility-validation"]
+      iex> length(document.data.lines) > 0
+      true
+      iex> hd(document.data.lines)
+      "https://rocketvalidator.com/"
   """
+  @spec text_sitemap_scrape(String.t(), map()) ::
+          {:ok, Document.t()} | {:error, String.t() | any(), any()}
   def text_sitemap_scrape(url, options \\ %{}) do
     scrape(url, options, &TextSitemapScraper.scrape/1)
   end
@@ -105,7 +121,7 @@ defmodule Funkspector do
     }
   end
 
-  def scrape(url, options, scraping_function) do
+  defp scrape(url, options, scraping_function) do
     options = Map.merge(default_options(), options)
 
     case request_or_load_contents(url, options) do

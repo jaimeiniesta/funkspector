@@ -44,6 +44,37 @@ defmodule FunkspectorTest.MockedConnections do
     {:error, %HTTPoison.Error{id: nil, reason: :nxdomain}}
   end
 
+  def gzip_response() do
+    body = :zlib.gzip(mocked_html())
+
+    {:ok,
+     %{
+       status_code: 200,
+       headers: [
+         {"content-length", "12345"},
+         {"content-type", "text/html;charset=utf-8"},
+         {"Content-Encoding", "gzip"}
+       ],
+       body: body
+     }}
+  end
+
+  def ssl_closed_error() do
+    {:error, %HTTPoison.Error{id: nil, reason: :closed}}
+  end
+
+  def ssl_handshake_error() do
+    {:error, %HTTPoison.Error{id: nil, reason: {:tls_alert, ~c"handshake failure"}}}
+  end
+
+  def server_error_response(status \\ 500) do
+    {:ok, %{status_code: status, body: "Internal Server Error"}}
+  end
+
+  def forbidden_response() do
+    {:ok, %{status_code: 403, body: "Forbidden"}}
+  end
+
   def redirect_from(url) do
     case url do
       "http://example.com/redirect/1" ->
@@ -60,6 +91,28 @@ defmodule FunkspectorTest.MockedConnections do
 
       "http://example.com/redirect/lowercase-location" ->
         redirection_response("location", "/redirect/3")
+    end
+  end
+
+  def long_redirect_chain(url) do
+    case url do
+      "http://example.com/chain/1" ->
+        redirection_response("Location", "http://example.com/chain/2")
+
+      "http://example.com/chain/2" ->
+        redirection_response("Location", "http://example.com/chain/3")
+
+      "http://example.com/chain/3" ->
+        redirection_response("Location", "http://example.com/chain/4")
+
+      "http://example.com/chain/4" ->
+        redirection_response("Location", "http://example.com/chain/5")
+
+      "http://example.com/chain/5" ->
+        redirection_response("Location", "http://example.com/chain/6")
+
+      "http://example.com/chain/6" ->
+        successful_response()
     end
   end
 

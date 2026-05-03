@@ -270,4 +270,94 @@ defmodule PageScraperTest do
              "ftp://ftp.example.com"
            ]
   end
+
+  test "handles HTML with no links" do
+    html = "<html><head><title>No links</title></head><body><p>Hello</p></body></html>"
+    {:ok, document} = Document.load("https://example.com", html)
+    {:ok, %Document{data: data}} = PageScraper.scrape(document)
+
+    assert data.links.raw == []
+    assert data.links.http.internal == []
+    assert data.links.http.external == []
+    assert data.links.non_http == []
+  end
+
+  test "handles empty HTML body" do
+    html = "<html><head></head><body></body></html>"
+    {:ok, document} = Document.load("https://example.com", html)
+    {:ok, %Document{data: data}} = PageScraper.scrape(document)
+
+    assert data.links.raw == []
+  end
+
+  test "deduplicates identical links" do
+    html = """
+    <html><body>
+      <a href="/page">Link 1</a>
+      <a href="/page">Link 2</a>
+      <a href="/page">Link 3</a>
+    </body></html>
+    """
+
+    {:ok, document} = Document.load("https://example.com", html)
+    {:ok, %Document{data: data}} = PageScraper.scrape(document)
+
+    assert data.links.raw == ["/page"]
+    assert data.links.http.internal == ["https://example.com/page"]
+  end
+
+  test "trims whitespace from link hrefs" do
+    html = """
+    <html><body>
+      <a href="  /page  ">Padded link</a>
+    </body></html>
+    """
+
+    {:ok, document} = Document.load("https://example.com", html)
+    {:ok, %Document{data: data}} = PageScraper.scrape(document)
+
+    assert data.links.raw == ["/page"]
+  end
+
+  test "handles anchor-only links as internal" do
+    html = """
+    <html><body>
+      <a href="#section">Anchor</a>
+    </body></html>
+    """
+
+    {:ok, document} = Document.load("https://example.com/page", html)
+    {:ok, %Document{data: data}} = PageScraper.scrape(document)
+
+    assert data.links.raw == ["#section"]
+    assert data.links.http.internal == ["https://example.com/page#section"]
+  end
+
+  test "handles links with empty href" do
+    html = """
+    <html><body>
+      <a href="">Empty href</a>
+    </body></html>
+    """
+
+    {:ok, document} = Document.load("https://example.com/page", html)
+    {:ok, %Document{data: data}} = PageScraper.scrape(document)
+
+    assert data.links.raw == [""]
+    assert data.links.http.internal == ["https://example.com/page"]
+  end
+
+  test "handles absolutifying relative base href" do
+    html = """
+    <html><head><base href="/base/"></head><body>
+      <a href="page">A page</a>
+    </body></html>
+    """
+
+    {:ok, document} = Document.load("https://example.com/dir/", html)
+    {:ok, %Document{data: data}} = PageScraper.scrape(document)
+
+    assert data.urls.base == "https://example.com/base/"
+    assert data.links.http.internal == ["https://example.com/base/page"]
+  end
 end
