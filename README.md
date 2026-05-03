@@ -6,102 +6,116 @@ Web page inspector for Elixir.
 
 Funkspector is a web scraper that lets you extract data from web pages and XML or TXT sitemaps.
 
+## Installation
+
+Add funkspector to your list of dependencies in `mix.exs`:
+
+```elixir
+def deps do
+  [{:funkspector, "~> 1.6"}]
+end
+```
+
 ## Usage
 
 ### Resolving URLs
 
-Simply pass Funkspector the URL to resolve and it will return its final URL after following redirections:
+Pass Funkspector a URL to resolve and it will return the final URL after following redirections:
 
 ```elixir
-iex> { :ok, final_url, _ } = Funkspector.resolve("http://example.com")
+{:ok, final_url, response} = Funkspector.resolve("http://example.com")
 ```
 
 ### Page Scraping
 
-Simply pass Funkspector the URL of a web page to inspect and it will return its scraped data:
+Pass Funkspector the URL of a web page and it will return a `Funkspector.Document` with the scraped data:
 
 ```elixir
-iex> { :ok, document } = Funkspector.page_scrape("https://rocketvalidator.com")
+{:ok, document} = Funkspector.page_scrape("https://example.com")
+```
+
+The returned `document.data` contains:
+
+```elixir
+%{
+  urls: %{
+    original: "https://example.com",
+    base: "https://example.com",
+    canonical: nil,
+    parsed: %{scheme: "https", host: "example.com", ...},
+    root: "https://example.com/"
+  },
+  links: %{
+    raw: ["/about", "https://other.com", ...],
+    http: %{
+      internal: ["https://example.com/about", ...],
+      external: ["https://other.com", ...]
+    },
+    non_http: ["mailto:hi@example.com", ...]
+  },
+  headers: %{"content-type" => "text/html;charset=utf-8", ...}
+}
 ```
 
 ### Sitemap Scraping
 
-Funkspector can extract the locations from XML sitemaps, like this:
+Funkspector can extract the locations from XML sitemaps:
 
 ```elixir
-iex> { :ok, document } = Funkspector.sitemap_scrape("https://rocketvalidator.com/sitemap.xml")
+{:ok, document} = Funkspector.sitemap_scrape("https://example.com/sitemap.xml")
+document.data.locs
+# => ["https://example.com/", "https://example.com/about", ...]
 ```
 
-It also supports TXT sitemaps:
+It also supports plain text sitemaps:
 
 ```elixir
-iex> { :ok, document } = Funkspector.text_sitemap_scrape("https://rocketvalidator.com/sitemap.txt")
-```
-### Custom User Agent
-
-You can specify a custom User Agent string using the `user_agent` option.
-
-Example:
-```elixir
-  Funkspector.page_scrape("http://example.com", %{user_agent: "My Bot"})
+{:ok, document} = Funkspector.text_sitemap_scrape("https://example.com/sitemap.txt")
+document.data.lines
+# => ["https://example.com/", "https://example.com/about", ...]
 ```
 
-### Basic Auth
+### Options
 
-You can specify a basic auth username and password using the `basic_auth` option, which will be passed as an `Authorization` request header.
+#### Custom User Agent
 
-Example:
 ```elixir
-  Funkspector.page_scrape("http://example.com", %{basic_auth: {"user", "secret"}})
+Funkspector.page_scrape("https://example.com", %{user_agent: "My Bot"})
 ```
 
-### Setting a custom timeout
+#### Basic Auth
 
-Use `recv_timeout` to set a custom timeout for the request, in milliseconds.
-
-Example:
 ```elixir
-  Funkspector.page_scrape("http://example.com", %{recv_timeout: 5_000})
+Funkspector.page_scrape("https://example.com", %{basic_auth: {"user", "secret"}})
 ```
 
-### Loading a document contents instead of requesting
+#### Custom timeout
 
-You can skip the HTTP request of the document if you already have the contents of the document. This is useful in cases where you already have the contents from a previous request or cache. For example:
+Use `recv_timeout` to set a custom timeout in milliseconds:
 
 ```elixir
-Funkspector.page_scrape("https://example.com", contents: "<html>...</html>")
-
+Funkspector.page_scrape("https://example.com", %{recv_timeout: 5_000})
 ```
 
-### Scraped data
+#### Loading pre-fetched contents
 
-For a successful response you'll get a `Funkspector.Document` with the scraped data, which will depend on the kind of scraper used. All data will be found inside the `:data` attribute. 
-
-## Error response
-
-In case of error, Funkspector will return the `original_url` and the reason from the server:
+You can skip the HTTP request if you already have the document contents:
 
 ```elixir
-case Funkspector.page_scrape("http://example.com") do
-  { :ok, document } ->
-    IO.inspect(data)
-  { :error, url, reason } ->
-    IO.puts "Could not scrape #{url} because of #{reason}"
+Funkspector.page_scrape("https://example.com", %{contents: "<html>...</html>"})
+Funkspector.sitemap_scrape("https://example.com/sitemap.xml", %{contents: "<xml>...</xml>"})
+Funkspector.text_sitemap_scrape("https://example.com/sitemap.txt", %{contents: "..."})
+```
+
+## Error handling
+
+In case of error, Funkspector returns the original URL and the reason:
+
+```elixir
+case Funkspector.page_scrape("https://example.com") do
+  {:ok, document} ->
+    IO.inspect(document.data)
+  {:error, url, reason} ->
+    IO.puts("Could not scrape #{url} because of #{inspect(reason)}")
 end
 ```
-
-## Installation
-
-If [available in Hex](https://hex.pm/docs/publish), the package can be installed as:
-
-  1. Add funkspector to your list of dependencies in `mix.exs`:
-
-        def deps do
-          [{:funkspector, "~> 0.10"}]
-        end
-
-  2. Ensure funkspector is started before your application:
-
-        def application do
-          [applications: [:funkspector]]
-        end
