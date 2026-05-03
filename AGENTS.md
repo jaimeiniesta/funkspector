@@ -86,5 +86,5 @@ Tagged with `@tag :integration` or `@moduletag :integration`. These hit live URL
 Run with `mix test --include integration`.
 
 Integration tests live in:
-- `test/integration_test.exs` — doctests for `Funkspector` and `Funkspector.Resolver` (live URL examples from `@doc`)
+- `test/docs_test.exs` — doctests for `Funkspector` and `Funkspector.Resolver` (live URL examples from `@doc`)
 - `test/resolver_test.exs` — hackney regression test (tagged individually with `@tag :integration`)
