@@ -103,5 +103,23 @@ defmodule UtilsTest do
       refute Utils.valid_url?(:atom)
       refute Utils.valid_url?([])
     end
+
+    @tag :integration
+    test "returns true for all IANA TLDs" do
+      %{status_code: 200, body: body} =
+        HTTPoison.get!("https://data.iana.org/TLD/tlds-alpha-by-domain.txt")
+
+      tlds =
+        body
+        |> String.split("\n", trim: true)
+        |> Enum.reject(&String.starts_with?(&1, "#"))
+
+      assert length(tlds) > 0
+
+      for tld <- tlds do
+        url = "http://example.#{String.downcase(tld)}"
+        assert Utils.valid_url?(url), "Expected #{url} to be valid"
+      end
+    end
   end
 end
