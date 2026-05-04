@@ -90,6 +90,12 @@ defmodule UtilsTest do
       refute Utils.valid_url?("https://example.abcdef")
     end
 
+    test "returns false when stray digits appear between TLD and port or path" do
+      refute Utils.valid_url?("https://example.com8080")
+      refute Utils.valid_url?("https://example.com8080:443")
+      refute Utils.valid_url?("https://example.com12345/path")
+    end
+
     test "returns false for non-HTTP URLs" do
       refute Utils.valid_url?("ftp://example.com")
       refute Utils.valid_url?("mailto:user@example.com")
