@@ -40,7 +40,7 @@ defmodule Funkspector.Utils do
   end
 
   @doc """
-  Returns whether the given URL looks like a real, reachable HTTP(S) URL.
+  Returns whether the given URL is a syntactically valid HTTP(S) URL with a recognized TLD.
 
   A URL is considered valid when:
 

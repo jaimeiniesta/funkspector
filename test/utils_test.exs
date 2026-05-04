@@ -151,7 +151,7 @@ defmodule UtilsTest do
       refute Utils.valid_url?("https://example.com.ññ")
     end
 
-    test "rejects stray digits between TLD and port or path (fix-15)" do
+    test "rejects stray digits between TLD and port or path (fix-18)" do
       refute Utils.valid_url?("https://example.com8080")
       refute Utils.valid_url?("https://example.com8080:443")
       refute Utils.valid_url?("https://example.com12345/path")
