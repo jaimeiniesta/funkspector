@@ -2,11 +2,20 @@ defmodule Funkspector.Utils do
   @moduledoc """
   Common utility functions shared across the scrapers.
 
-  Provides URL absolutification (converting relative URLs to absolute)
-  and URL validation using a regular expression that supports internationalized domain names.
+  Provides URL absolutification (converting relative URLs to absolute) and
+  URL validation built on top of `URI.parse/1` and the IANA TLD list bundled
+  in `priv/tlds-alpha-by-domain.txt`.
   """
 
-  @url_regexp ~r/\Ahttp(s?)\:\/\/[a-zñäëïöüáéíóúàèìòùâêîôû0-9\-_]+([\.]{1}[a-zñäëïöüáéíóúàèìòùâêîôû0-9\-]+)*\.[a-z0-9]{2,5}((:(\d{1,5}))?([\/\?#].*)?)?\z/i
+  @tlds_file Path.join([:code.priv_dir(:funkspector), "tlds-alpha-by-domain.txt"])
+  @external_resource @tlds_file
+
+  @tlds @tlds_file
+        |> File.read!()
+        |> String.split("\n", trim: true)
+        |> Enum.reject(&String.starts_with?(&1, "#"))
+        |> Enum.map(&String.downcase/1)
+        |> MapSet.new()
 
   @doc """
   Converts relative URLs to absolute URLs using the given base URL.
@@ -22,8 +31,7 @@ defmodule Funkspector.Utils do
   """
   @spec absolutify([String.t()], String.t()) :: [String.t()]
   def absolutify(links, base_url) when is_list(links) do
-    links
-    |> Enum.map(&absolutify(&1, base_url))
+    Enum.map(links, &absolutify(&1, base_url))
   end
 
   @spec absolutify(String.t(), String.t()) :: String.t()
@@ -32,14 +40,28 @@ defmodule Funkspector.Utils do
   end
 
   @doc """
-  Returns whether the given URL matches a valid HTTP/HTTPS URL pattern.
+  Returns whether the given URL is a syntactically valid HTTP(S) URL with a recognized TLD.
 
-  Uses a regular expression that supports internationalized domain names
-  (with characters like ñ, ä, ë, etc.). Returns `false` for non-binary values.
+  A URL is considered valid when:
+
+    * it contains no whitespace or control characters,
+    * it parses with `URI.parse/1` into a recognizable URI,
+    * its scheme is `http` or `https` (case-insensitive),
+    * it has a non-empty host, and
+    * the host is `localhost`, an IPv4/IPv6 address, or a domain whose
+      last label is in the bundled IANA TLD list.
+
+  IDN domains with ASCII TLDs (e.g. `ñandú.com`, `münchen.de`) are
+  accepted. URLs whose TLD itself is non-ASCII (e.g. `example.中国`) are
+  rejected, because the IANA list stores those in punycode form and we do
+  not ship a punycode encoder.
 
   ## Examples
 
       iex> Funkspector.Utils.valid_url?("https://example.com")
+      true
+
+      iex> Funkspector.Utils.valid_url?("http://localhost:3000")
       true
 
       iex> Funkspector.Utils.valid_url?("joe@example.com")
@@ -53,8 +75,45 @@ defmodule Funkspector.Utils do
   """
   @spec valid_url?(any()) :: boolean()
   def valid_url?(url) when is_binary(url) do
-    Regex.match?(@url_regexp, url)
+    with false <- has_disallowed_chars?(url),
+         %URI{scheme: scheme, host: host} <- URI.parse(url),
+         true <- is_binary(scheme) and String.downcase(scheme) in ["http", "https"],
+         true <- is_binary(host) and host != "" do
+      valid_host?(host)
+    else
+      _ -> false
+    end
   end
 
   def valid_url?(_), do: false
+
+  defp has_disallowed_chars?(string) do
+    String.match?(string, ~r/[\s\x00-\x1f\x7f]/u)
+  end
+
+  defp valid_host?("localhost"), do: true
+
+  defp valid_host?(host) do
+    ip_address?(host) or valid_tld?(host)
+  end
+
+  defp ip_address?(host) do
+    case :inet.parse_address(String.to_charlist(host)) do
+      {:ok, _} -> true
+      _ -> false
+    end
+  end
+
+  defp valid_tld?(host) do
+    case String.split(host, ".") do
+      [_single] ->
+        false
+
+      labels ->
+        tld = labels |> List.last() |> String.downcase()
+        ascii?(tld) and MapSet.member?(@tlds, tld)
+    end
+  end
+
+  defp ascii?(string), do: string == for(<<c <- string>>, c < 128, into: "", do: <<c>>)
 end
