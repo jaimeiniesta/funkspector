@@ -6,7 +6,7 @@ defmodule Funkspector.Utils do
   and URL validation using a regular expression that supports internationalized domain names.
   """
 
-  @url_regexp ~r/\Ahttp(s?)\:\/\/[a-zñäëïöüáéíóúàèìòùâêîôû0-9\-_]+([\.]{1}[a-zñäëïöüáéíóúàèìòùâêîôû0-9\-]+)*\.[a-z0-9]{2,5}(([0-9]{1,5})?(:(\d{1,5}))?\/?.*)?\z/i
+  @url_regexp ~r/\Ahttp(s?)\:\/\/[a-zñäëïöüáéíóúàèìòùâêîôû0-9\-_]+([\.]{1}[a-zñäëïöüáéíóúàèìòùâêîôû0-9\-]+)*\.[a-z0-9]{2,5}(([0-9]{1,5})?(:(\d{1,5}))?([\/\?#].*)?)?\z/i
 
   @doc """
   Converts relative URLs to absolute URLs using the given base URL.

@@ -84,6 +84,12 @@ defmodule UtilsTest do
       refute Utils.valid_url?("https://example.ññ")
     end
 
+    test "returns false when a valid TLD is followed by invalid trailing segments" do
+      refute Utils.valid_url?("https://example.com.ñ")
+      refute Utils.valid_url?("https://example.com.ññ")
+      refute Utils.valid_url?("https://example.abcdef")
+    end
+
     test "returns false for non-HTTP URLs" do
       refute Utils.valid_url?("ftp://example.com")
       refute Utils.valid_url?("mailto:user@example.com")
