@@ -96,6 +96,12 @@ defmodule UtilsTest do
       refute Utils.valid_url?("javascript:alert(1)")
     end
 
+    test "returns false for stray digits glued onto the TLD" do
+      refute Utils.valid_url?("https://example.com8080")
+      refute Utils.valid_url?("https://example.com8080:443")
+      refute Utils.valid_url?("https://example.com12345/path")
+    end
+
     test "returns false for invalid formats" do
       refute Utils.valid_url?("not a url")
       refute Utils.valid_url?("http://")
