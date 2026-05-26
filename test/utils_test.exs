@@ -305,8 +305,8 @@ defmodule UtilsTest do
 
   @tag :integration
   test "bundled IANA TLD list matches the live one" do
-    %{status_code: 200, body: body} =
-      HTTPoison.get!("https://data.iana.org/TLD/tlds-alpha-by-domain.txt")
+    {:ok, %Req.Response{status: 200, body: body}} =
+      Req.get("https://data.iana.org/TLD/tlds-alpha-by-domain.txt")
 
     live =
       body

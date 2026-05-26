@@ -1,54 +1,103 @@
 defmodule FunkspectorTest.MockedConnections do
+  @moduledoc """
+  Canned HTTP responses used by the unit test suite.
+
+  Since v2.0.0 these helpers return adapter-normalized results — a
+  `{:ok, %Funkspector.Response{}}` or `{:error, %Funkspector.Error{}}`
+  tuple as defined by the `Funkspector.HTTP.Adapter` behaviour. Tests
+  mock the adapter module currently selected for the run (Req by
+  default, HTTPoison when `FUNKSPECTOR_ADAPTER=httpoison`); use
+  `current_adapter/0` to obtain that module at runtime.
+  """
+
+  alias Funkspector.{Response, Error}
+
+  @doc """
+  Returns the HTTP adapter module configured for the current test run.
+
+  Tests use this with `Mock.with_mock/2` so the same suite runs cleanly
+  under both the default Req adapter and the opt-in HTTPoison adapter.
+  """
+  def current_adapter do
+    Application.get_env(:funkspector, :http_adapter, Funkspector.HTTP.Adapters.Req)
+  end
+
   def unsuccessful_response(status) do
-    {:ok, %{status_code: status, body: "returned body"}}
+    {:ok, %Response{status_code: status, headers: [], body: "returned body"}}
   end
 
   def successful_response(status \\ 200) do
-    {:ok, %{status_code: status, headers: mocked_html_headers(), body: mocked_html()}}
+    {:ok,
+     %Response{
+       status_code: status,
+       headers: mocked_html_headers(),
+       body: mocked_html()
+     }}
   end
 
   def successful_response_with_base_href(status \\ 200, url) do
     {:ok,
-     %{status_code: status, headers: mocked_html_headers(), body: mocked_html_with_base_href(url)}}
+     %Response{
+       status_code: status,
+       headers: mocked_html_headers(),
+       body: mocked_html_with_base_href(url)
+     }}
   end
 
   def successful_response_for_sitemap(status \\ 200) do
-    {:ok, %{status_code: status, headers: mocked_xml_headers(), body: mocked_xml()}}
+    {:ok,
+     %Response{
+       status_code: status,
+       headers: mocked_xml_headers(),
+       body: mocked_xml()
+     }}
   end
 
   def successful_response_for_text_sitemap(status \\ 200) do
-    {:ok, %{status_code: status, headers: mocked_text_headers(), body: mocked_text()}}
+    {:ok,
+     %Response{
+       status_code: status,
+       headers: mocked_text_headers(),
+       body: mocked_text()
+     }}
   end
 
   def malformed_xml_response(status \\ 200) do
-    {:ok, %{status_code: status, headers: mocked_xml_headers(), body: malformed_xml()}}
+    {:ok,
+     %Response{
+       status_code: status,
+       headers: mocked_xml_headers(),
+       body: malformed_xml()
+     }}
   end
 
   def multiple_choices_response() do
     {:ok,
-     %{
+     %Response{
        status_code: 300,
-       headers: [{"Content-length", "0"}, {"Content-length", "0"}]
+       headers: [{"Content-length", "0"}, {"Content-length", "0"}],
+       body: nil
      }}
   end
 
   def redirection_response(location_key, to_url) do
     {:ok,
-     %{
+     %Response{
        status_code: 301,
-       headers: [{"Content-length", "0"}, {location_key, to_url}, {"Content-length", "0"}]
+       headers: [{"Content-length", "0"}, {location_key, to_url}, {"Content-length", "0"}],
+       body: nil
      }}
   end
 
   def http_error_response() do
-    {:error, %HTTPoison.Error{id: nil, reason: :nxdomain}}
+    {:error, %Error{reason: :nxdomain, adapter: current_adapter()}}
   end
 
   def gzip_response() do
     body = :zlib.gzip(mocked_html())
 
     {:ok,
-     %{
+     %Response{
        status_code: 200,
        headers: [
          {"content-length", "12345"},
@@ -60,19 +109,23 @@ defmodule FunkspectorTest.MockedConnections do
   end
 
   def ssl_closed_error() do
-    {:error, %HTTPoison.Error{id: nil, reason: :closed}}
+    {:error, %Error{reason: :closed, adapter: current_adapter()}}
   end
 
   def ssl_handshake_error() do
-    {:error, %HTTPoison.Error{id: nil, reason: {:tls_alert, ~c"handshake failure"}}}
+    {:error,
+     %Error{
+       reason: {:tls_alert, ~c"handshake failure"},
+       adapter: current_adapter()
+     }}
   end
 
   def server_error_response(status \\ 500) do
-    {:ok, %{status_code: status, body: "Internal Server Error"}}
+    {:ok, %Response{status_code: status, headers: [], body: "Internal Server Error"}}
   end
 
   def forbidden_response() do
-    {:ok, %{status_code: 403, body: "Forbidden"}}
+    {:ok, %Response{status_code: 403, headers: [], body: "Forbidden"}}
   end
 
   def redirect_from(url) do

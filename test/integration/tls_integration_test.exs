@@ -38,10 +38,10 @@ defmodule Funkspector.TLSIntegrationTest do
   end
 
   test "honors an explicit :ssl override (same code path the SSL retry uses)" do
-    # The retry logic at resolver.ex:86-96 merges %{ssl: [versions: [:"tlsv1.2"]]}
+    # The retry logic in Funkspector.Resolver merges %{ssl: [versions: [:"tlsv1.2"]]}
     # into the options on TLS errors. Setting it manually exercises that exact
     # path on a successful request, so a regression in option-forwarding from
-    # Funkspector → HTTPoison → hackney is caught here.
+    # Funkspector → the active HTTP adapter (Req/HTTPoison) is caught here.
     assert {:ok, _final_url, %{status_code: 200}} =
              with_transient_retry(fn ->
                Funkspector.resolve(httpbin_root(), %{ssl: [versions: [:"tlsv1.2"]]})

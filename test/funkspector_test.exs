@@ -4,7 +4,9 @@ defmodule FunkspectorTest do
   import Mock
   import FunkspectorTest.MockedConnections
 
-  alias Funkspector.Document
+  alias Funkspector.{Document, Error}
+
+  @adapter current_adapter()
 
   @invalid_urls [
     "Warning: Element name h2<audio< cannot be represented as XML 1.0.",
@@ -37,7 +39,7 @@ defmodule FunkspectorTest do
 
   describe "page_scrape" do
     test "scrapes page if it exists" do
-      with_mock HTTPoison, get: fn _url, _headers, _options -> successful_response() end do
+      with_mock @adapter, get: fn _url, _opts -> successful_response() end do
         {:ok, document} = Funkspector.page_scrape("https://example.com")
 
         assert document == %Document{
@@ -111,7 +113,7 @@ defmodule FunkspectorTest do
     end
 
     test "follows redirections" do
-      with_mock HTTPoison, get: fn url, _headers, _options -> redirect_from(url) end do
+      with_mock @adapter, get: fn url, _opts -> redirect_from(url) end do
         {:ok, document} = Funkspector.page_scrape("http://example.com/redirect/1")
 
         assert document == %Document{
@@ -185,9 +187,9 @@ defmodule FunkspectorTest do
     end
 
     test "retuns error if page does not exist" do
-      with_mock HTTPoison, get: fn _url, _headers, _options -> http_error_response() end do
-        assert Funkspector.page_scrape("https://example.com") ==
-                 {:error, "https://example.com", %HTTPoison.Error{reason: :nxdomain, id: nil}}
+      with_mock @adapter, get: fn _url, _opts -> http_error_response() end do
+        assert {:error, "https://example.com", %Error{reason: :nxdomain}} =
+                 Funkspector.page_scrape("https://example.com")
       end
     end
 
@@ -201,8 +203,8 @@ defmodule FunkspectorTest do
 
   describe "sitemap_scrape" do
     test "scrapes sitemap if it exists" do
-      with_mock HTTPoison,
-        get: fn _url, _headers, _options -> successful_response_for_sitemap() end do
+      with_mock @adapter,
+        get: fn _url, _opts -> successful_response_for_sitemap() end do
         {:ok, document} = Funkspector.sitemap_scrape("https://example.com/sitemap.xml")
 
         assert document == %Document{
@@ -239,10 +241,9 @@ defmodule FunkspectorTest do
     end
 
     test "retuns error if page does not exist" do
-      with_mock HTTPoison, get: fn _url, _headers, _options -> http_error_response() end do
-        assert Funkspector.sitemap_scrape("https://example.com/sitemap.xml") ==
-                 {:error, "https://example.com/sitemap.xml",
-                  %HTTPoison.Error{reason: :nxdomain, id: nil}}
+      with_mock @adapter, get: fn _url, _opts -> http_error_response() end do
+        assert {:error, "https://example.com/sitemap.xml", %Error{reason: :nxdomain}} =
+                 Funkspector.sitemap_scrape("https://example.com/sitemap.xml")
       end
     end
 
@@ -258,8 +259,8 @@ defmodule FunkspectorTest do
 
   describe "text_sitemap_scrape" do
     test "scrapes text sitemap if it exists" do
-      with_mock HTTPoison,
-        get: fn _url, _headers, _options -> successful_response_for_text_sitemap() end do
+      with_mock @adapter,
+        get: fn _url, _opts -> successful_response_for_text_sitemap() end do
         {:ok, document} = Funkspector.text_sitemap_scrape("https://example.com/sitemap.txt")
 
         assert document == %Document{
@@ -297,10 +298,9 @@ defmodule FunkspectorTest do
     end
 
     test "returns error if page does not exist" do
-      with_mock HTTPoison, get: fn _url, _headers, _options -> http_error_response() end do
-        assert Funkspector.text_sitemap_scrape("https://example.com/sitemap.txt") ==
-                 {:error, "https://example.com/sitemap.txt",
-                  %HTTPoison.Error{reason: :nxdomain, id: nil}}
+      with_mock @adapter, get: fn _url, _opts -> http_error_response() end do
+        assert {:error, "https://example.com/sitemap.txt", %Error{reason: :nxdomain}} =
+                 Funkspector.text_sitemap_scrape("https://example.com/sitemap.txt")
       end
     end
 
@@ -316,7 +316,7 @@ defmodule FunkspectorTest do
 
   describe "resolve" do
     test "follows redirections and returns final URL" do
-      with_mock HTTPoison, get: fn url, _headers, _options -> redirect_from(url) end do
+      with_mock @adapter, get: fn url, _opts -> redirect_from(url) end do
         {:ok, final_url, _response} = Funkspector.resolve("http://example.com/redirect/1")
         assert final_url == "http://example.com/redirect/3"
       end
@@ -329,9 +329,9 @@ defmodule FunkspectorTest do
     end
 
     test "returns error if host does not exist" do
-      with_mock HTTPoison, get: fn _url, _headers, _options -> http_error_response() end do
-        assert Funkspector.resolve("https://example.com") ==
-                 {:error, "https://example.com", %HTTPoison.Error{reason: :nxdomain, id: nil}}
+      with_mock @adapter, get: fn _url, _opts -> http_error_response() end do
+        assert {:error, "https://example.com", %Error{reason: :nxdomain}} =
+                 Funkspector.resolve("https://example.com")
       end
     end
   end
