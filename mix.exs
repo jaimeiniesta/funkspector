@@ -10,7 +10,24 @@ defmodule Funkspector.Mixfile do
       package: package(),
       build_embedded: Mix.env() == :prod,
       start_permanent: Mix.env() == :prod,
-      deps: deps()
+      deps: deps(),
+      aliases: aliases(),
+      preferred_cli_env: [
+        "test.all": :test
+      ]
+    ]
+  end
+
+  # Custom mix aliases.
+  #
+  # * `mix test.all` — run the full suite, including integration tests that
+  #   hit live URLs (httpbin.org, badssl.com, github.com, hex.pm, etc.).
+  #   Equivalent to `mix test --include integration`, but extra CLI args
+  #   are forwarded so `mix test.all test/integration/tls_integration_test.exs`
+  #   works as expected.
+  defp aliases do
+    [
+      "test.all": ["test --include integration"]
     ]
   end
 

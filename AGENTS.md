@@ -27,8 +27,11 @@ mix test --include integration
 # Run only integration tests
 mix test --include integration --only integration
 
-# Run everything (unit + integration)
-mix test --include integration
+# Run everything (unit + integration) — shortcut alias for the line above
+mix test.all
+
+# Run a single integration file via the alias
+mix test.all test/integration/tls_integration_test.exs
 
 # Lint (CI runs these)
 mix compile --warnings-as-errors
