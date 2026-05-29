@@ -1,7 +1,16 @@
+if Code.ensure_loaded?(HTTPoison) do
 defmodule Funkspector.HTTP.Adapters.HTTPoison do
   @moduledoc """
   Opt-in Funkspector HTTP adapter, backed by
   [HTTPoison](https://hex.pm/packages/httpoison) on top of hackney.
+
+  Compiled only when the `:httpoison` dependency is actually present in the
+  consuming project — `httpoison` is declared `optional: true` in
+  `funkspector`'s `mix.exs`, so projects that stick with the default Req
+  adapter do not need to pull it in. When HTTPoison is missing the module
+  is simply not defined; selecting it as the adapter in that case fails
+  with `UndefinedFunctionError` at call time, which is the desired
+  behaviour for an explicit opt-in.
 
   This is the historical Funkspector HTTP path, preserved for users who
   cannot — or do not want to — move to Req yet. The defaults here match
@@ -100,4 +109,5 @@ defmodule Funkspector.HTTP.Adapters.HTTPoison do
         headers
     end
   end
+end
 end
