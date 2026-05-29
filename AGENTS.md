@@ -27,6 +27,10 @@ mix test --include integration
 # Run only integration tests
 mix test --include integration --only integration
 
+# Run the unit suite against the default Req adapter (mirrors `mix test`,
+# but explicitly sets FUNKSPECTOR_ADAPTER=req for symmetry with test.httpoison)
+mix test.req
+
 # Run the unit suite against the opt-in HTTPoison adapter
 mix test.httpoison
 

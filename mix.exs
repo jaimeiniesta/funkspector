@@ -14,6 +14,7 @@ defmodule Funkspector.Mixfile do
       aliases: aliases(),
       preferred_cli_env: [
         "test.all": :test,
+        "test.req": :test,
         "test.httpoison": :test,
         "test.adapters": :test
       ]
@@ -24,6 +25,9 @@ defmodule Funkspector.Mixfile do
   #
   # * `mix test.all` — run the full suite, including integration tests that
   #   hit live URLs (httpbin.org, badssl.com, github.com, hex.pm, etc.).
+  # * `mix test.req` — run the full suite under the default Req adapter by
+  #   setting `FUNKSPECTOR_ADAPTER=req`. Equivalent to `mix test` today, but
+  #   provided for symmetry with `mix test.httpoison`.
   # * `mix test.httpoison` — run the full suite under the opt-in HTTPoison
   #   adapter by setting `FUNKSPECTOR_ADAPTER=httpoison`. The default
   #   adapter (Req) is used otherwise.
@@ -35,6 +39,7 @@ defmodule Funkspector.Mixfile do
         "test --include integration",
         "cmd FUNKSPECTOR_ADAPTER=httpoison mix test --include integration"
       ],
+      "test.req": ["cmd FUNKSPECTOR_ADAPTER=req mix test"],
       "test.httpoison": ["cmd FUNKSPECTOR_ADAPTER=httpoison mix test"],
       "test.adapters": ["test", "test.httpoison"]
     ]
