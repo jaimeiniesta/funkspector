@@ -26,7 +26,7 @@ Pluggable HTTP adapter. Funkspector no longer hardcodes HTTPoison/hackney; inste
 - **TLS certificates are now verified by default** (both adapters). Pre-2.0 disabled verification (`hackney: [:insecure]`); pass `insecure: true` to restore that for hosts with broken/self-signed certificates. Note that `:basic_auth` credentials are sent over the connection, so the secure default matters.
 - Redirect chains exceeding the 5-hop limit now return `{:error, url, :too_many_redirects}` instead of `{:ok, url, <last 3xx response>}`.
 - A 3xx response with no usable `Location` header now returns an error tuple instead of raising; `Location`/`Content-Encoding` header lookups are case-insensitive across adapters.
-- Error tuples report the original requested URL (not the post-redirect URL), and `:basic_auth` is stripped when a redirect crosses origin.
+- The `page_scrape`/`sitemap_scrape`/`text_sitemap_scrape` error tuples report the original requested URL (not the post-redirect URL); `resolve/2` continues to report the URL that actually failed. `:basic_auth` is stripped when a redirect crosses origin.
 - Passing a non-binary `:contents` now returns `{:error, url, :invalid_contents}` instead of raising.
 
 ### Why

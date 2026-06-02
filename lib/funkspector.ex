@@ -44,7 +44,6 @@ defmodule Funkspector do
           | :invalid_url
           | :invalid_contents
           | :too_many_redirects
-          | :body_too_large
 
   @doc """
   Follows redirections for the given URL, returning the final URL and response.
@@ -55,8 +54,8 @@ defmodule Funkspector do
       iex> final_url
       "https://github.com/"
   """
-  @spec resolve(String.t(), map()) ::
-          {:ok, String.t(), Response.t()} | {:error, String.t(), error_reason()}
+  @spec resolve(String.t() | any(), map()) ::
+          {:ok, String.t(), Response.t()} | {:error, String.t() | any(), error_reason()}
   def resolve(url, options \\ %{}) do
     options = Map.merge(default_options(), options)
 
@@ -85,8 +84,8 @@ defmodule Funkspector do
       iex> {:error, "https://notfoundwebsite.com", %Funkspector.Error{reason: :nxdomain}} =
       ...>   Funkspector.page_scrape("https://notfoundwebsite.com")
   """
-  @spec page_scrape(String.t(), map()) ::
-          {:ok, Document.t()} | {:error, String.t(), error_reason()}
+  @spec page_scrape(String.t() | any(), map()) ::
+          {:ok, Document.t()} | {:error, String.t() | any(), error_reason()}
   def page_scrape(url, options \\ %{}) do
     scrape(url, options, &PageScraper.scrape/1)
   end
@@ -109,8 +108,8 @@ defmodule Funkspector do
       iex> hd(document.data.locs)
       "https://rocketvalidator.com/"
   """
-  @spec sitemap_scrape(String.t(), map()) ::
-          {:ok, Document.t()} | {:error, String.t(), error_reason()}
+  @spec sitemap_scrape(String.t() | any(), map()) ::
+          {:ok, Document.t()} | {:error, String.t() | any(), error_reason()}
   def sitemap_scrape(url, options \\ %{}) do
     scrape(url, options, &SitemapScraper.scrape/1)
   end
@@ -133,8 +132,8 @@ defmodule Funkspector do
       iex> hd(document.data.lines)
       "https://rocketvalidator.com/"
   """
-  @spec text_sitemap_scrape(String.t(), map()) ::
-          {:ok, Document.t()} | {:error, String.t(), error_reason()}
+  @spec text_sitemap_scrape(String.t() | any(), map()) ::
+          {:ok, Document.t()} | {:error, String.t() | any(), error_reason()}
   def text_sitemap_scrape(url, options \\ %{}) do
     scrape(url, options, &TextSitemapScraper.scrape/1)
   end

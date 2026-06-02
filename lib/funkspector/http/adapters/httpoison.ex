@@ -95,6 +95,8 @@ if Code.ensure_loaded?(HTTPoison) do
         |> Map.delete(:contents)
         |> Map.delete(:connect_options)
         |> Map.delete(:insecure)
+        # Funkspector-level option, not a hackney/HTTPoison request option.
+        |> Map.delete(:max_body_size)
 
       {headers, options}
     end

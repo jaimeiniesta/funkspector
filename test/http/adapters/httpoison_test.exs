@@ -79,5 +79,11 @@ defmodule Funkspector.HTTP.Adapters.HTTPoisonTest do
                  HTTPoisonAdapter.get("https://example.com", %{max_body_size: 100})
       end
     end
+
+    test "does not forward the funkspector-level :max_body_size option to HTTPoison" do
+      request_options = captured_request_options("https://example.com", %{max_body_size: 100})
+
+      refute Keyword.has_key?(request_options, :max_body_size)
+    end
   end
 end

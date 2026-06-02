@@ -83,7 +83,7 @@ defmodule Funkspector.Resolver do
       {:ok, response} ->
         case deflate(response, max_body_size(options)) do
           {:ok, response} -> dispatch(url, response, max_redirects, options)
-          :too_large -> {:error, url, :body_too_large}
+          :too_large -> {:error, url, %Error{reason: :body_too_large}}
         end
 
       {:error, %Error{reason: reason} = error} ->
@@ -230,7 +230,7 @@ defmodule Funkspector.Resolver do
         if total > limit do
           :too_large
         else
-          safe_inflate(z, [], limit, [acc | output], total)
+          safe_inflate(z, [], limit, [acc, output], total)
         end
 
       {:finished, output} ->
@@ -239,7 +239,7 @@ defmodule Funkspector.Resolver do
         if total > limit do
           :too_large
         else
-          {:ok, IO.iodata_to_binary([acc | output])}
+          {:ok, IO.iodata_to_binary([acc, output])}
         end
     end
   end

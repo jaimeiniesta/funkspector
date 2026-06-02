@@ -26,10 +26,10 @@ defmodule Funkspector.Document do
   along with the response body and headers. Returns an error tuple if the
   URL is invalid, the host cannot be resolved, or the response status is not 2xx.
   """
-  @spec request(String.t(), map()) ::
+  @spec request(String.t() | any(), map()) ::
           {:ok, t()}
-          | {:error, String.t(),
-             Response.t() | Error.t() | :invalid_url | :too_many_redirects | :body_too_large}
+          | {:error, String.t() | any(),
+             Response.t() | Error.t() | :invalid_url | :too_many_redirects}
   def request(url, options \\ %{}) do
     case Resolver.resolve(url, options) do
       {:ok, final_url, response} ->

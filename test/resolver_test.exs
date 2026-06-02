@@ -133,7 +133,7 @@ defmodule Funkspector.ResolverTest do
 
   test "aborts gzip decompression that would exceed max_body_size" do
     with_mock @adapter, get: fn _url, _opts -> gzip_response() end do
-      assert {:error, "https://example.com/", :body_too_large} =
+      assert {:error, "https://example.com/", %Error{reason: :body_too_large}} =
                resolve("https://example.com/", %{max_body_size: 10})
     end
   end
