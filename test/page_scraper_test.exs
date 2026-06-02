@@ -360,4 +360,36 @@ defmodule PageScraperTest do
     assert data.urls.base == "https://example.com/base/"
     assert data.links.http.internal == ["https://example.com/base/page"]
   end
+
+  test "classifies same-host links case-insensitively" do
+    html = ~s(<html><body><a href="http://EXAMPLE.COM/upper">Upper</a></body></html>)
+    {:ok, document} = Document.load("https://example.com/page", html)
+    {:ok, %Document{data: data}} = PageScraper.scrape(document)
+
+    assert data.links.http.internal == ["http://EXAMPLE.COM/upper"]
+    assert data.links.http.external == []
+  end
+
+  test "resolves a relative canonical URL against the base href" do
+    html =
+      ~s(<html><head><base href="https://example.com/base/">) <>
+        ~s(<link rel="canonical" href="rel-canonical"></head><body></body></html>)
+
+    {:ok, document} = Document.load("https://example.com/dir/page", html)
+    {:ok, %Document{data: data}} = PageScraper.scrape(document)
+
+    assert data.urls.canonical == "https://example.com/base/rel-canonical"
+  end
+
+  test "does not crash on a document with nil contents" do
+    document = %Document{
+      url: "https://example.com/page",
+      contents: nil,
+      data: %{urls: %{parsed: URI.parse("https://example.com/page") |> Map.from_struct()}}
+    }
+
+    assert {:ok, %Document{data: data}} = PageScraper.scrape(document)
+    assert data.links.raw == []
+    assert data.links.http.internal == []
+  end
 end

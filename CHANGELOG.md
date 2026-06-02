@@ -13,6 +13,8 @@ Pluggable HTTP adapter. Funkspector no longer hardcodes HTTPoison/hackney; inste
 - `Funkspector.Response` and `Funkspector.Error` — adapter-agnostic structs returned to callers.
 - `:adapter` option on every public call for per-call adapter override.
 - App-wide adapter configuration via `config :funkspector, :http_adapter, …`.
+- `:insecure` option (default `false`) to disable TLS certificate verification per call, honored by both adapters.
+- `:max_body_size` option (default 100 MB) that bounds both the raw response body and gzip decompression; oversized responses return `%Funkspector.Error{reason: :body_too_large}`. Set `:infinity` to disable.
 - Mix aliases: `mix test.httpoison` (run the suite against the HTTPoison adapter) and `mix test.adapters` (run both back-to-back).
 
 ### Changed (breaking)
@@ -21,10 +23,15 @@ Pluggable HTTP adapter. Funkspector no longer hardcodes HTTPoison/hackney; inste
 - Non-2xx HTTP responses surface as `%Funkspector.Response{status_code: integer, headers: list, body: binary}` instead of `%HTTPoison.Response{}`.
 - Default HTTP transport is now Req. Set `config :funkspector, :http_adapter, Funkspector.HTTP.Adapters.HTTPoison` to keep the previous behavior.
 - `:httpoison` and `:hackney` are now `optional: true` deps. Add them to your own `mix.exs` if you select the HTTPoison adapter.
+- **TLS certificates are now verified by default** (both adapters). Pre-2.0 disabled verification (`hackney: [:insecure]`); pass `insecure: true` to restore that for hosts with broken/self-signed certificates. Note that `:basic_auth` credentials are sent over the connection, so the secure default matters.
+- Redirect chains exceeding the 5-hop limit now return `{:error, url, :too_many_redirects}` instead of `{:ok, url, <last 3xx response>}`.
+- A 3xx response with no usable `Location` header now returns an error tuple instead of raising; `Location`/`Content-Encoding` header lookups are case-insensitive across adapters.
+- The `page_scrape`/`sitemap_scrape`/`text_sitemap_scrape` error tuples report the original requested URL (not the post-redirect URL); `resolve/2` continues to report the URL that actually failed. `:basic_auth` is stripped when a redirect crosses origin.
+- Passing a non-binary `:contents` now returns `{:error, url, :invalid_contents}` instead of raising.
 
 ### Why
 
-Hackney 4.x ships fixes for [CVE-2026-47066..47076](https://github.com/benoitc/hackney/security/advisories) (Alt-Svc parsing, WebSocket framing, SSRF via redirects, CR/LF injection), but HTTPoison 2.3.0 is constrained to `hackney ~> 1.21` and changed body-fetch contracts prevent simply overriding. Req does not depend on hackney and is unaffected.
+hackney 4.0.1 ships fixes for a cluster of 2026 advisories; the two that affect the pinned hackney 1.21 are [CVE-2026-47075](https://nvd.nist.gov/vuln/detail/CVE-2026-47075) (CRLF injection / HTTP request splitting) and [CVE-2026-47076](https://nvd.nist.gov/vuln/detail/CVE-2026-47076) (SSRF via URL normalization). HTTPoison 2.3.0 is constrained to `hackney ~> 1.21` and changed body-fetch contracts prevent simply overriding ([httpoison#501](https://github.com/edgurgel/httpoison/issues/501)). Req does not depend on hackney and is unaffected.
 
 ### Migration
 

@@ -3,17 +3,22 @@ defmodule FunkspectorTest.IntegrationUrls do
   Stable URL helpers for the integration test suite.
 
   Centralizing every external host in one module keeps the integration
-  tests resilient to upstream outages: if `httpbin.org` becomes flaky we
-  swap `@httpbin_base` to `httpbingo.org` (or self-hosted equivalent) in
-  one place and every test follows. The same applies to `badssl.com` and
-  to the handful of production sites we exercise.
+  tests resilient to upstream outages: if the httpbin host becomes flaky
+  we swap `@httpbin_base` in one place and every test follows. We default
+  to `httpbingo.org` (the actively-maintained go-httpbin reimplementation);
+  `httpbin.io` and `httpbin.org` are drop-in alternatives. The same applies
+  to `badssl.com` and to the handful of production sites we exercise.
 
   Functions are preferred over module attributes so call sites read as
   intent (`httpbin_status(404)`) and so we keep the freedom to compose
   URL parameters later without rippling through every test file.
+
+  Assertions should reference the helpers (or host-neutral fragments like
+  `"/get"`) rather than a literal host, so swapping `@httpbin_base` never
+  breaks a test.
   """
 
-  @httpbin_base "https://httpbin.org"
+  @httpbin_base "https://httpbingo.org"
   @badssl_base "badssl.com"
 
   ##############

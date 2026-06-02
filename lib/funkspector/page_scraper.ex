@@ -5,6 +5,14 @@ defmodule Funkspector.PageScraper do
   Parses the HTML to find all `<a href>` links, then classifies them as
   internal/external HTTP links or non-HTTP links (mailto, javascript, ftp, etc.).
   Also extracts the `<base href>` and `<link rel="canonical">` values.
+
+  > #### Not a security boundary {: .warning}
+  > `links.http.internal`/`links.http.external` is a host-string comparison
+  > against the final fetched document host, and relative links are resolved
+  > against the page's own `<base href>`. A scraped page can therefore steer
+  > where its relative links point. Re-validate any URL (and apply your own
+  > SSRF/egress controls) before fetching it — do not treat "internal" as
+  > "same-origin and safe".
   """
 
   import Funkspector.Utils
@@ -33,12 +41,20 @@ defmodule Funkspector.PageScraper do
   #####################
 
   defp scraped_data(%Document{url: url, contents: contents, data: data}) do
+    # Parse the HTML once and reuse the tree; a nil body (possible from the
+    # HTTPoison adapter for body-less responses) is treated as empty rather
+    # than crashing `Floki.parse_document!/1`.
+    doc = Floki.parse_document!(contents || "")
+
     urls =
       (data[:urls] || %{})
-      |> Map.put_new(:base, base_href(contents, url) || url)
-      |> Map.put_new(:canonical, canonical_url(contents, url))
+      |> Map.put_new(:base, base_href(doc, url) || url)
 
-    raw_links = raw_links(contents)
+    # The canonical URL is resolved against the (possibly <base href>-derived)
+    # base, consistent with how <a> links are resolved and with the HTML spec.
+    urls = Map.put_new(urls, :canonical, canonical_url(doc, urls.base))
+
+    raw_links = raw_links(doc)
 
     {http_links, non_http_links} =
       raw_links
@@ -61,20 +77,18 @@ defmodule Funkspector.PageScraper do
     |> Map.put_new(:links, links)
   end
 
-  defp canonical_url(html, url) do
-    case html
-         |> Floki.parse_document!()
+  defp canonical_url(doc, base) do
+    case doc
          |> Floki.find("link[rel=canonical]")
          |> Floki.attribute("href")
          |> List.first() do
       nil -> nil
-      canonical_href -> absolutify(canonical_href, url)
+      canonical_href -> absolutify(canonical_href, base)
     end
   end
 
-  defp base_href(html, url) do
-    case html
-         |> Floki.parse_document!()
+  defp base_href(doc, url) do
+    case doc
          |> Floki.find("base")
          |> Floki.attribute("href")
          |> List.first() do
@@ -83,9 +97,8 @@ defmodule Funkspector.PageScraper do
     end
   end
 
-  defp raw_links(html) do
-    html
-    |> Floki.parse_document!()
+  defp raw_links(doc) do
+    doc
     |> Floki.find("a")
     |> Floki.attribute("href")
     |> Enum.map(&String.trim/1)
@@ -100,10 +113,14 @@ defmodule Funkspector.PageScraper do
     Enum.split_with(links, &same_host?(&1, host))
   end
 
+  # Host names are case-insensitive (RFC 3986), so compare them downcased.
   defp same_host?(link, host) do
     case URI.parse(link) do
-      %{host: ^host} -> true
-      _ -> false
+      %{host: link_host} when is_binary(link_host) and is_binary(host) ->
+        String.downcase(link_host) == String.downcase(host)
+
+      _ ->
+        false
     end
   end
 end

@@ -56,6 +56,12 @@ defmodule Funkspector.Utils do
   rejected, because the IANA list stores those in punycode form and we do
   not ship a punycode encoder.
 
+  This is a syntax/TLD check, **not** an SSRF guard: `localhost`, IP-literal
+  hosts (including private and link-local addresses), and embedded `userinfo`
+  (`http://user:pass@host`) are all considered valid. Apply your own
+  allow/deny policy before fetching untrusted URLs (see the README's
+  "Security considerations").
+
   ## Examples
 
       iex> Funkspector.Utils.valid_url?("https://example.com")

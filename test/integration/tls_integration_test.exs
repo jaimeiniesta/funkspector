@@ -2,12 +2,12 @@ defmodule Funkspector.TLSIntegrationTest do
   @moduledoc """
   TLS-specific behaviors against real hosts.
 
-  These are the tests most likely to detect regressions from the hackney
-  upgrade. Funkspector defaults to `hackney: [:insecure]` (see
-  `Funkspector` default_options at `lib/funkspector.ex:117`), which means
-  cert chain verification is disabled. The badssl.com hosts below are
-  precisely the cases that would fail if that default ever silently
-  flipped — exactly the kind of breakage hackney issue #501 produced.
+  Since v2.0.0 Funkspector verifies TLS certificates by default (see
+  `Funkspector` `default_options/0`). The badssl.com hosts below — self
+  signed, expired, and wrong-host certificates — must therefore be
+  *rejected* by default, and only accepted when the caller explicitly opts
+  out with `%{insecure: true}`. These are the tests most likely to detect a
+  regression that silently re-disables verification.
   """
 
   use ExUnit.Case, async: true
@@ -22,19 +22,34 @@ defmodule Funkspector.TLSIntegrationTest do
              with_transient_retry(fn -> Funkspector.resolve(httpbin_root()) end)
   end
 
-  test "accepts a self-signed certificate (verify_none default)" do
+  test "rejects a self-signed certificate by default" do
     url = badssl_self_signed()
-    assert {:ok, ^url, %{status_code: 200}} = Funkspector.resolve(url)
+    assert {:error, ^url, _reason} = Funkspector.resolve(url)
   end
 
-  test "accepts an expired certificate (verify_none default)" do
+  test "rejects an expired certificate by default" do
     url = badssl_expired()
-    assert {:ok, ^url, %{status_code: 200}} = Funkspector.resolve(url)
+    assert {:error, ^url, _reason} = Funkspector.resolve(url)
   end
 
-  test "accepts a certificate whose CN does not match the host (verify_none default)" do
+  test "rejects a certificate whose CN does not match the host by default" do
     url = badssl_wrong_host()
-    assert {:ok, ^url, %{status_code: 200}} = Funkspector.resolve(url)
+    assert {:error, ^url, _reason} = Funkspector.resolve(url)
+  end
+
+  test "accepts a self-signed certificate when insecure: true" do
+    url = badssl_self_signed()
+    assert {:ok, ^url, %{status_code: 200}} = Funkspector.resolve(url, %{insecure: true})
+  end
+
+  test "accepts an expired certificate when insecure: true" do
+    url = badssl_expired()
+    assert {:ok, ^url, %{status_code: 200}} = Funkspector.resolve(url, %{insecure: true})
+  end
+
+  test "accepts a wrong-host certificate when insecure: true" do
+    url = badssl_wrong_host()
+    assert {:ok, ^url, %{status_code: 200}} = Funkspector.resolve(url, %{insecure: true})
   end
 
   test "honors an explicit :ssl override (same code path the SSL retry uses)" do

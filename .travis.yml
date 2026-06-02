@@ -1,6 +1,0 @@
-language: elixir
-elixir:
-  - 1.17.3
-otp_release:
-  - 27.1.2
-sudo: false

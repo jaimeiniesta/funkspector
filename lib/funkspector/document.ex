@@ -15,7 +15,7 @@ defmodule Funkspector.Document do
   defstruct [:url, :contents, :data]
 
   alias __MODULE__
-  alias Funkspector.{Resolver, Response}
+  alias Funkspector.{Resolver, Response, Error}
 
   import Funkspector.Utils, only: [valid_url?: 1]
 
@@ -26,15 +26,19 @@ defmodule Funkspector.Document do
   along with the response body and headers. Returns an error tuple if the
   URL is invalid, the host cannot be resolved, or the response status is not 2xx.
   """
-  @spec request(String.t(), map()) ::
-          {:ok, t()} | {:error, String.t() | any(), any()}
+  @spec request(String.t() | any(), map()) ::
+          {:ok, t()}
+          | {:error, String.t() | any(),
+             Response.t() | Error.t() | :invalid_url | :too_many_redirects}
   def request(url, options \\ %{}) do
     case Resolver.resolve(url, options) do
       {:ok, final_url, response} ->
         handle_response(response, url, final_url)
 
-      {_, url, response} ->
-        {:error, url, response}
+      # Preserve the caller's original URL in the error tuple rather than the
+      # post-redirect URL the resolver failed on.
+      {_, _resolved_url, reason} ->
+        {:error, url, reason}
     end
   end
 

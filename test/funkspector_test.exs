@@ -199,6 +199,11 @@ defmodule FunkspectorTest do
         assert Funkspector.page_scrape(url, %{contents: @html_doc}) == {:error, url, :invalid_url}
       end
     end
+
+    test "returns an error for non-binary contents instead of crashing" do
+      assert Funkspector.page_scrape("https://example.com", %{contents: 123}) ==
+               {:error, "https://example.com", :invalid_contents}
+    end
   end
 
   describe "sitemap_scrape" do
