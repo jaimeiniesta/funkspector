@@ -15,7 +15,7 @@ defmodule Funkspector.Document do
   defstruct [:url, :contents, :data]
 
   alias __MODULE__
-  alias Funkspector.Resolver
+  alias Funkspector.{Resolver, Response}
 
   import Funkspector.Utils, only: [valid_url?: 1]
 
@@ -61,7 +61,7 @@ defmodule Funkspector.Document do
   #####################
 
   defp handle_response(
-         response = %{status_code: status, body: _body},
+         %Response{status_code: status} = response,
          original_url,
          _final_url
        )
@@ -70,7 +70,7 @@ defmodule Funkspector.Document do
   end
 
   defp handle_response(
-         %{status_code: status, headers: headers, body: body},
+         %Response{status_code: status, headers: headers, body: body},
          original_url,
          final_url
        )

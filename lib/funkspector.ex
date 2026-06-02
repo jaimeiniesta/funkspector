@@ -11,6 +11,24 @@ defmodule Funkspector do
 
   All scrape functions accept an optional `contents:` keyword in the options
   map to skip the HTTP request and scrape pre-fetched content instead.
+
+  ## HTTP adapter
+
+  The actual HTTP transport is pluggable. Funkspector ships with two
+  adapters and defaults to the Req one:
+
+    * `Funkspector.HTTP.Adapters.Req` (default) — Finch/Mint, no hackney.
+    * `Funkspector.HTTP.Adapters.HTTPoison` — opt-in, wraps the historical
+      HTTPoison/hackney 1.21 stack.
+
+  Select an adapter globally through application config:
+
+      # config/config.exs
+      config :funkspector, :http_adapter, Funkspector.HTTP.Adapters.HTTPoison
+
+  Or per call by passing the `:adapter` option:
+
+      Funkspector.resolve(url, %{adapter: Funkspector.HTTP.Adapters.HTTPoison})
   """
 
   alias Funkspector.{Resolver, Document, PageScraper, SitemapScraper, TextSitemapScraper}
@@ -51,8 +69,8 @@ defmodule Funkspector do
 
   ## Example: site not found
 
-      iex> Funkspector.page_scrape("https://notfoundwebsite.com")
-      {:error, "https://notfoundwebsite.com", %HTTPoison.Error{reason: :nxdomain, id: nil}}
+      iex> {:error, "https://notfoundwebsite.com", %Funkspector.Error{reason: :nxdomain}} =
+      ...>   Funkspector.page_scrape("https://notfoundwebsite.com")
   """
   @spec page_scrape(String.t(), map()) ::
           {:ok, Document.t()} | {:error, String.t() | any(), any()}
@@ -114,10 +132,14 @@ defmodule Funkspector do
 
   defp default_options do
     %{
+      # `hackney: [:insecure]` is honored by the HTTPoison adapter (matches
+      # pre-2.0 behavior). The Req adapter translates `:insecure` into its
+      # own transport options (`verify: :verify_none`) at the boundary so
+      # the same default applies regardless of adapter choice.
       hackney: [:insecure],
       timeout: 28_000,
       recv_timeout: 25_000,
-      user_agent: "Funkspector/0.6.0 (+https://hex.pm/packages/funkspector)"
+      user_agent: "Funkspector/2.0.0 (+https://hex.pm/packages/funkspector)"
     }
   end
 

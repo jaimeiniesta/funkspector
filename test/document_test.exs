@@ -1,10 +1,12 @@
 defmodule Funkspector.DocumentTest do
   use ExUnit.Case
 
-  alias Funkspector.Document
+  alias Funkspector.{Document, Error}
 
   import Mock
   import FunkspectorTest.MockedConnections
+
+  @adapter current_adapter()
 
   @url "http://example.com/page"
 
@@ -25,7 +27,7 @@ defmodule Funkspector.DocumentTest do
     end
 
     test "returns a Document with the contents retrieved from the given url" do
-      with_mock HTTPoison, get: fn _url, _headers, _options -> successful_response(200) end do
+      with_mock @adapter, get: fn _url, _opts -> successful_response(200) end do
         assert Document.request(@url) ==
                  {:ok,
                   %Document{
@@ -56,28 +58,27 @@ defmodule Funkspector.DocumentTest do
     end
 
     test "returns error for non-2xx response status" do
-      with_mock HTTPoison, get: fn _url, _headers, _options -> server_error_response(500) end do
+      with_mock @adapter, get: fn _url, _opts -> server_error_response(500) end do
         {:error, @url, response} = Document.request(@url)
         assert response.status_code == 500
       end
     end
 
     test "returns error for 403 forbidden" do
-      with_mock HTTPoison, get: fn _url, _headers, _options -> forbidden_response() end do
+      with_mock @adapter, get: fn _url, _opts -> forbidden_response() end do
         {:error, @url, response} = Document.request(@url)
         assert response.status_code == 403
       end
     end
 
     test "returns error when host cannot be resolved" do
-      with_mock HTTPoison, get: fn _url, _headers, _options -> http_error_response() end do
-        assert Document.request(@url) ==
-                 {:error, @url, %HTTPoison.Error{id: nil, reason: :nxdomain}}
+      with_mock @adapter, get: fn _url, _opts -> http_error_response() end do
+        assert {:error, @url, %Error{reason: :nxdomain}} = Document.request(@url)
       end
     end
 
     test "preserves original URL when following redirects" do
-      with_mock HTTPoison, get: fn url, _headers, _options -> redirect_from(url) end do
+      with_mock @adapter, get: fn url, _opts -> redirect_from(url) end do
         {:ok, document} = Document.request("http://example.com/redirect/1")
         assert document.url == "http://example.com/redirect/3"
         assert document.data.urls.original == "http://example.com/redirect/1"

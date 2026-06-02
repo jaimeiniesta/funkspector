@@ -2,6 +2,48 @@
 
 All notable changes to Funkspector are documented in this file.
 
+## [2.0.0] - 2026-05-26
+
+Pluggable HTTP adapter. Funkspector no longer hardcodes HTTPoison/hackney; instead it talks to an `Funkspector.HTTP.Adapter` behaviour with two adapters shipped in-tree.
+
+### Added
+
+- `Funkspector.HTTP.Adapters.Req` — new default adapter, backed by [Req](https://hex.pm/packages/req)/Finch/Mint. No hackney dependency.
+- `Funkspector.HTTP.Adapters.HTTPoison` — opt-in adapter that preserves the pre-2.0 transport.
+- `Funkspector.Response` and `Funkspector.Error` — adapter-agnostic structs returned to callers.
+- `:adapter` option on every public call for per-call adapter override.
+- App-wide adapter configuration via `config :funkspector, :http_adapter, …`.
+- Mix aliases: `mix test.httpoison` (run the suite against the HTTPoison adapter) and `mix test.adapters` (run both back-to-back).
+
+### Changed (breaking)
+
+- Errors are now `%Funkspector.Error{reason: atom, adapter: module}` instead of `%HTTPoison.Error{reason: atom, id: nil}`. The `:reason` atom (e.g. `:nxdomain`, `:timeout`, `:closed`) is unchanged, so most pattern matches need only a struct rename.
+- Non-2xx HTTP responses surface as `%Funkspector.Response{status_code: integer, headers: list, body: binary}` instead of `%HTTPoison.Response{}`.
+- Default HTTP transport is now Req. Set `config :funkspector, :http_adapter, Funkspector.HTTP.Adapters.HTTPoison` to keep the previous behavior.
+- `:httpoison` and `:hackney` are now `optional: true` deps. Add them to your own `mix.exs` if you select the HTTPoison adapter.
+
+### Why
+
+Hackney 4.x ships fixes for [CVE-2026-47066..47076](https://github.com/benoitc/hackney/security/advisories) (Alt-Svc parsing, WebSocket framing, SSRF via redirects, CR/LF injection), but HTTPoison 2.3.0 is constrained to `hackney ~> 1.21` and changed body-fetch contracts prevent simply overriding. Req does not depend on hackney and is unaffected.
+
+### Migration
+
+```elixir
+# Before
+{:error, url, %HTTPoison.Error{reason: :nxdomain, id: nil}} = Funkspector.resolve(...)
+
+# After
+{:error, url, %Funkspector.Error{reason: :nxdomain, adapter: _}} = Funkspector.resolve(...)
+```
+
+To keep HTTPoison as the transport, add this to your `config/config.exs`:
+
+```elixir
+config :funkspector, :http_adapter, Funkspector.HTTP.Adapters.HTTPoison
+```
+
+and declare HTTPoison + hackney in your own deps.
+
 ## [1.6.0](https://github.com/jaimeiniesta/funkspector/compare/940247c...842fe34) - 2025-11-20
 
 - Add another TLS retry reason for SSL handshake failures.

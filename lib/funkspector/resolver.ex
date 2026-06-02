@@ -5,26 +5,31 @@ defmodule Funkspector.Resolver do
   Handles up to 5 redirect hops, supports SSL/TLS version fallback
   (retrying with TLSv1.2 on handshake failures), automatic gzip
   decompression, basic authentication, and custom User-Agent headers.
+
+  The actual HTTP transport is delegated to a pluggable adapter — see
+  `Funkspector.HTTP.Adapter`. The adapter is selected from
+  `opts[:adapter]` or from application config:
+
+      config :funkspector, :http_adapter, Funkspector.HTTP.Adapters.Req
   """
 
   import Funkspector.Utils, only: [valid_url?: 1]
 
+  alias Funkspector.{Response, Error}
+
   # In case of these errors related with SSL we'll retry setting a TLS version, as per this post:
   # http://campezzi.ghost.io/httpoison-ssl-connection-closed/
-  @reasons_to_retry_with_ssl_version [
-    %HTTPoison.Error{id: nil, reason: :closed},
-    %HTTPoison.Error{id: nil, reason: {:tls_alert, ~c"handshake failure"}},
-    %HTTPoison.Error{
-      id: nil,
-      reason: {:options, {:sslv3, {:versions, [:"tlsv1.2", :"tlsv1.1", :tlsv1, :sslv3]}}}
-    },
-    %HTTPoison.Error{
-      id: nil,
-      reason:
-        {:tls_alert,
-         {:handshake_failure,
-          ~c"TLS client: In state hello received SERVER ALERT: Fatal - Handshake Failure\\n"}}
-    }
+  #
+  # The match is on the normalized `%Funkspector.Error{}` reason atoms.
+  # Each adapter is responsible for mapping its native error onto these
+  # atoms (`gen_tcp`/`inet` vocabulary).
+  @ssl_retry_reasons [
+    :closed,
+    {:tls_alert, ~c"handshake failure"},
+    {:options, {:sslv3, {:versions, [:"tlsv1.2", :"tlsv1.1", :tlsv1, :sslv3]}}},
+    {:tls_alert,
+     {:handshake_failure,
+      ~c"TLS client: In state hello received SERVER ALERT: Fatal - Handshake Failure\\n"}}
   ]
 
   @doc """
@@ -38,10 +43,12 @@ defmodule Funkspector.Resolver do
 
     * `:basic_auth` - `{username, password}` tuple for HTTP Basic Authentication
     * `:user_agent` - custom User-Agent header string
-    * `:ssl` - SSL options passed to hackney
-    * `:hackney` - options passed directly to hackney
+    * `:ssl` - SSL options forwarded to the adapter
+    * `:hackney` - hackney-specific options (honored by the HTTPoison adapter;
+      the Req adapter translates the `:insecure` flag and ignores the rest)
     * `:timeout` - connection timeout in milliseconds
     * `:recv_timeout` - receive timeout in milliseconds
+    * `:adapter` - override the HTTP adapter for this call
 
   ## Examples
 
@@ -50,7 +57,8 @@ defmodule Funkspector.Resolver do
       "https://github.com/"
   """
   @spec resolve(String.t() | any(), map()) ::
-          {:ok, String.t(), map()} | {:error, String.t() | any(), any()}
+          {:ok, String.t(), Response.t()}
+          | {:error, String.t() | any(), Response.t() | Error.t() | :invalid_url}
   def resolve(url, options \\ %{}) do
     if valid_url?(url) do
       resolve_url(url, 5, %{}, options)
@@ -67,92 +75,81 @@ defmodule Funkspector.Resolver do
     do: {:ok, url, response}
 
   defp resolve_url(url, max_redirects, _response, options) do
-    {request_headers, request_options} = request_headers_and_options(options)
-
-    # SSL cert verification disabled until this bug is solved:
-    # https://github.com/edgurgel/httpoison/issues/93
-
-    case HTTPoison.get(url, request_headers, Map.to_list(request_options)) do
-      {:ok, response = %{status_code: status, headers: headers}} when status in 301..399 ->
+    case adapter(options).get(url, options) do
+      {:ok, response = %Response{status_code: status, headers: headers}}
+      when status in 301..399 ->
         to = URI.merge(url, location_from(headers)) |> to_string
         resolve_url(to, max_redirects - 1, deflated(response), options)
 
-      {:ok, response = %{status_code: 300}} ->
+      {:ok, response = %Response{status_code: 300}} ->
         {:error, url, deflated(response)}
 
-      {:ok, response = %{status_code: status}} when status < 200 or status >= 400 ->
+      {:ok, response = %Response{status_code: status}} when status < 200 or status >= 400 ->
         {:error, url, deflated(response)}
 
-      {:error, response} when response in @reasons_to_retry_with_ssl_version ->
-        if is_nil(options[:ssl]) do
+      {:ok, response} ->
+        {:ok, url, deflated(response)}
+
+      {:error, %Error{reason: reason} = error} ->
+        if retry_ssl?(reason) and is_nil(options[:ssl]) do
           resolve_url(
             url,
             max_redirects - 1,
-            response,
+            error,
             Map.merge(%{ssl: [versions: [:"tlsv1.2"]]}, options)
           )
         else
-          {:error, url, deflated(response)}
+          {:error, url, error}
         end
-
-      {status, response} ->
-        {status, url, deflated(response)}
     end
   end
 
-  #####################
-  # Private functions #
-  #####################
+  defp retry_ssl?(reason), do: reason in @ssl_retry_reasons
 
-  defp location_from(headers) do
-    Enum.into(headers, %{})["Location"] || Enum.into(headers, %{})["location"]
+  defp adapter(options) do
+    options[:adapter] ||
+      Application.get_env(:funkspector, :http_adapter, Funkspector.HTTP.Adapters.Req)
   end
 
-  # Deflates the body if it was gzip-compressed. Temporary until HTTPoison handles this:
-  # https://github.com/edgurgel/httpoison/issues/81
-  #
-  defp deflated(response) do
-    gzipped =
-      Map.has_key?(response, :headers) &&
-        Enum.any?(response.headers, fn kv ->
-          case kv do
-            {"Content-Encoding", "gzip"} -> true
-            {"Content-Encoding", "x-gzip"} -> true
-            _ -> false
-          end
-        end)
+  defp location_from(headers) do
+    map = Enum.into(headers, %{})
+    map["Location"] || map["location"]
+  end
 
-    if gzipped do
-      Map.put(response, :body, :zlib.gunzip(response.body))
+  # Deflates the body if it was gzip-compressed. Operates on a normalized
+  # `%Funkspector.Response{}` produced by the adapter, but accepts any map
+  # exposing `:headers` and `:body` so existing tests that pass plain maps
+  # keep working.
+  defp deflated(%Response{} = response) do
+    if gzipped?(response.headers) and is_binary(response.body) do
+      %Response{response | body: :zlib.gunzip(response.body)}
     else
       response
     end
   end
 
-  defp request_headers_and_options(options) do
-    headers = request_headers(options)
+  defp deflated(response) when is_map(response) do
+    headers = Map.get(response, :headers, [])
+    body = Map.get(response, :body)
 
-    options =
-      options
-      |> Map.delete(:user_agent)
-      |> Map.delete(:basic_auth)
-
-    {headers, options}
+    if gzipped?(headers) and is_binary(body) do
+      Map.put(response, :body, :zlib.gunzip(body))
+    else
+      response
+    end
   end
 
-  defp request_headers(options) do
-    headers = [{"User-Agent", options[:user_agent]}]
+  defp deflated(other), do: other
 
-    headers =
-      case options[:basic_auth] do
-        {username, password} ->
-          auth = Base.encode64("#{username}:#{password}")
-          [{"Authorization", "Basic #{auth}"} | headers]
-
-        _ ->
-          headers
-      end
-
-    headers
+  defp gzipped?(headers) when is_list(headers) do
+    Enum.any?(headers, fn
+      {"Content-Encoding", "gzip"} -> true
+      {"Content-Encoding", "x-gzip"} -> true
+      {"content-encoding", "gzip"} -> true
+      {"content-encoding", "x-gzip"} -> true
+      _ -> false
+    end)
   end
+
+  defp gzipped?(_), do: false
 end

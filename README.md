@@ -12,9 +12,13 @@ Add funkspector to your list of dependencies in `mix.exs`:
 
 ```elixir
 def deps do
-  [{:funkspector, "~> 1.6"}]
+  [{:funkspector, "~> 2.0"}]
 end
 ```
+
+Funkspector 2.0 uses [Req](https://hex.pm/packages/req) (Finch/Mint) as its
+default HTTP transport. [HTTPoison](https://hex.pm/packages/httpoison) remains
+available as an opt-in adapter — see [HTTP Adapter](#http-adapter) below.
 
 ## Usage
 
@@ -119,3 +123,65 @@ case Funkspector.page_scrape("https://example.com") do
     IO.puts("Could not scrape #{url} because of #{inspect(reason)}")
 end
 ```
+
+The `reason` is one of:
+
+- `:invalid_url` — the URL failed Funkspector's syntax/TLD validation.
+- A `%Funkspector.Error{reason: atom, adapter: module}` — a transport
+  failure (e.g., `:nxdomain`, `:timeout`, `:closed`, `{:tls_alert, _}`).
+  The `:reason` atom comes from `gen_tcp`/`inet`, so the contract is the
+  same across adapters.
+- A `%Funkspector.Response{status_code: integer}` — a non-2xx HTTP
+  response (e.g., 404, 500, 300).
+
+## HTTP Adapter
+
+Funkspector 2.0 ships with two HTTP adapters:
+
+- `Funkspector.HTTP.Adapters.Req` (**default**) — backed by
+  [Req](https://hex.pm/packages/req)/Finch/Mint. No `hackney` dependency,
+  so it sidesteps the hackney 4.x CVE upgrade path that's currently blocked
+  by [httpoison#501](https://github.com/edgurgel/httpoison/issues/501).
+- `Funkspector.HTTP.Adapters.HTTPoison` — backed by
+  [HTTPoison](https://hex.pm/packages/httpoison)/hackney. Opt-in for users
+  who want to preserve the pre-2.0 transport.
+
+### Switching the default adapter
+
+Set the adapter app-wide in your `config/config.exs`:
+
+```elixir
+config :funkspector, :http_adapter, Funkspector.HTTP.Adapters.HTTPoison
+```
+
+You'll also need to declare `httpoison` (and `hackney`) in your own
+`mix.exs` deps since Funkspector marks them `optional: true`:
+
+```elixir
+{:httpoison, "~> 2.3"}
+```
+
+### Per-call override
+
+Pass `:adapter` in the options map to override on a single call:
+
+```elixir
+Funkspector.resolve("https://example.com", %{
+  adapter: Funkspector.HTTP.Adapters.HTTPoison
+})
+```
+
+### Migrating from 1.x
+
+The error and response structs are normalized across adapters:
+
+```elixir
+# Funkspector 1.x
+{:error, url, %HTTPoison.Error{reason: :nxdomain, id: nil}}
+
+# Funkspector 2.0
+{:error, url, %Funkspector.Error{reason: :nxdomain, adapter: _}}
+```
+
+The `:reason` atom is unchanged, so most pattern matches require only a
+struct rename.
