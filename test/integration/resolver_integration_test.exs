@@ -36,8 +36,8 @@ defmodule Funkspector.ResolverIntegrationTest do
       assert {:ok, final_url, %{status_code: 200}} =
                with_transient_retry(fn -> Funkspector.resolve(httpbin_redirect(3)) end)
 
-      # /redirect/N terminates at /get on httpbin.org.
-      assert final_url =~ "httpbin.org/get"
+      # /redirect/N terminates at /get on the httpbin host.
+      assert final_url =~ "/get"
     end
 
     test "follows a relative redirect chain" do
@@ -46,28 +46,26 @@ defmodule Funkspector.ResolverIntegrationTest do
                  Funkspector.resolve(httpbin_relative_redirect(2))
                end)
 
-      assert final_url =~ "httpbin.org/get"
+      assert final_url =~ "/get"
     end
 
     test "follows a cross-host redirect" do
+      # example.com is a different host from the httpbin host, exercising the
+      # cross-origin redirect path. (httpbingo's /redirect-to only allows a
+      # small destination allowlist, of which example.com is a member.)
       assert {:ok, final_url, %{status_code: 200}} =
                with_transient_retry(fn ->
-                 Funkspector.resolve(httpbin_redirect_to("https://hex.pm/"))
+                 Funkspector.resolve(httpbin_redirect_to("https://example.com/"))
                end)
 
-      assert final_url == "https://hex.pm/"
+      assert final_url == "https://example.com/"
     end
 
-    test "stops following redirects after the max of 5 hops" do
-      # /redirect/10 would need 10 hops; the resolver caps at 5 and returns
-      # the URL it was about to fetch next (see Funkspector.Resolver.resolve_url/4
-      # base case at resolver.ex:66).
-      assert {:ok, final_url, _response} =
+    test "returns a too_many_redirects error past the max of 5 hops" do
+      # /redirect/10 needs 10 hops; the resolver caps at 5 and returns an
+      # explicit error tuple rather than a partially-followed chain.
+      assert {:error, _url, :too_many_redirects} =
                with_transient_retry(fn -> Funkspector.resolve(httpbin_redirect(10)) end)
-
-      assert final_url =~ "httpbin.org/"
-      # We did not reach the terminal /get endpoint.
-      refute final_url =~ "/get"
     end
   end
 

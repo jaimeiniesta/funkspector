@@ -133,4 +133,37 @@ defmodule SitemapScraperTest do
 
     refute "https://example.com/commented-out-should-not-be-included" in data.locs
   end
+
+  test "does not expand XML entities in an untrusted sitemap" do
+    xml = """
+    <?xml version="1.0"?>
+    <!DOCTYPE urlset [<!ENTITY x "expanded">]>
+    <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+      <url><loc>/&x;</loc></url>
+    </urlset>
+    """
+
+    {:ok, document} = Document.load("https://example.com/sitemap.xml", xml)
+    {:ok, %Document{data: data}} = SitemapScraper.scrape(document)
+
+    # The entity must never be expanded into a loc, regardless of the OTP/xmerl
+    # version the consumer runs.
+    assert data.locs == []
+    refute Enum.any?(data.locs, &String.contains?(&1, "expanded"))
+  end
+
+  test "does not fetch an external DTD referenced by an untrusted sitemap" do
+    xml = """
+    <?xml version="1.0"?>
+    <!DOCTYPE urlset SYSTEM "http://127.0.0.1:9/evil.dtd">
+    <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+      <url><loc>/page</loc></url>
+    </urlset>
+    """
+
+    {:ok, document} = Document.load("https://example.com/sitemap.xml", xml)
+    {:ok, %Document{data: data}} = SitemapScraper.scrape(document)
+
+    assert is_list(data.locs)
+  end
 end

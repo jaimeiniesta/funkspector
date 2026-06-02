@@ -36,9 +36,14 @@ defmodule Funkspector.SitemapScraper do
   end
 
   defp raw_locs(xml) do
+    # `dtd: :none` makes SweetXml/xmerl refuse all DTD and entity declarations,
+    # so an attacker-controlled sitemap cannot trigger XXE (external entity /
+    # file read), entity-expansion DoS ("billion laughs"), or an external-DTD
+    # fetch — independent of the consumer's OTP/xmerl version. The catch keeps a
+    # malformed (or DTD-bearing) sitemap returning `[]` rather than crashing.
     try do
       xml
-      |> parse(quiet: true)
+      |> parse(quiet: true, dtd: :none)
       |> xpath(~x"//url/loc/text()"l)
       |> Enum.uniq()
       |> Enum.map(&to_string/1)

@@ -156,5 +156,5 @@ Define specific error atoms or structs:
 These MetaInspector features don't apply or have Elixir equivalents:
 
 - **Nokogiri document access** (`parsed`) - Funkspector uses Floki; users can call `Floki.parse_document!/1` on `document.contents` directly.
-- **Faraday middleware** - Funkspector uses HTTPoison/Hackney; middleware patterns differ in Elixir.
+- **Faraday middleware** - Funkspector uses Req (Finch/Mint) by default behind a pluggable HTTP adapter; middleware patterns differ in Elixir.
 - **Lazy evaluation** - MetaInspector defers HTTP requests until data is accessed. Funkspector's functional API (`page_scrape/2` returns everything at once) is more idiomatic in Elixir.

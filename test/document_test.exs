@@ -84,6 +84,23 @@ defmodule Funkspector.DocumentTest do
         assert document.data.urls.original == "http://example.com/redirect/1"
       end
     end
+
+    test "returns the original URL (not the redirected URL) on a non-2xx after redirect" do
+      with_mock @adapter,
+        get: fn url, _opts ->
+          case url do
+            "http://example.com/start" ->
+              redirection_response("Location", "http://example.com/gone")
+
+            "http://example.com/gone" ->
+              unsuccessful_response(404)
+          end
+        end do
+        {:error, original_url, response} = Document.request("http://example.com/start")
+        assert original_url == "http://example.com/start"
+        assert response.status_code == 404
+      end
+    end
   end
 
   describe "load" do

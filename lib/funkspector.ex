@@ -32,6 +32,19 @@ defmodule Funkspector do
   """
 
   alias Funkspector.{Resolver, Document, PageScraper, SitemapScraper, TextSitemapScraper}
+  alias Funkspector.{Response, Error}
+
+  @typedoc """
+  Why a `resolve`/`scrape` call failed: a non-2xx `Funkspector.Response`, a
+  transport `Funkspector.Error`, or one of the validation/limit atoms.
+  """
+  @type error_reason ::
+          Response.t()
+          | Error.t()
+          | :invalid_url
+          | :invalid_contents
+          | :too_many_redirects
+          | :body_too_large
 
   @doc """
   Follows redirections for the given URL, returning the final URL and response.
@@ -43,7 +56,7 @@ defmodule Funkspector do
       "https://github.com/"
   """
   @spec resolve(String.t(), map()) ::
-          {:ok, String.t(), map()} | {:error, String.t() | any(), any()}
+          {:ok, String.t(), Response.t()} | {:error, String.t(), error_reason()}
   def resolve(url, options \\ %{}) do
     options = Map.merge(default_options(), options)
 
@@ -73,7 +86,7 @@ defmodule Funkspector do
       ...>   Funkspector.page_scrape("https://notfoundwebsite.com")
   """
   @spec page_scrape(String.t(), map()) ::
-          {:ok, Document.t()} | {:error, String.t() | any(), any()}
+          {:ok, Document.t()} | {:error, String.t(), error_reason()}
   def page_scrape(url, options \\ %{}) do
     scrape(url, options, &PageScraper.scrape/1)
   end
@@ -97,7 +110,7 @@ defmodule Funkspector do
       "https://rocketvalidator.com/"
   """
   @spec sitemap_scrape(String.t(), map()) ::
-          {:ok, Document.t()} | {:error, String.t() | any(), any()}
+          {:ok, Document.t()} | {:error, String.t(), error_reason()}
   def sitemap_scrape(url, options \\ %{}) do
     scrape(url, options, &SitemapScraper.scrape/1)
   end
@@ -121,7 +134,7 @@ defmodule Funkspector do
       "https://rocketvalidator.com/"
   """
   @spec text_sitemap_scrape(String.t(), map()) ::
-          {:ok, Document.t()} | {:error, String.t() | any(), any()}
+          {:ok, Document.t()} | {:error, String.t(), error_reason()}
   def text_sitemap_scrape(url, options \\ %{}) do
     scrape(url, options, &TextSitemapScraper.scrape/1)
   end
@@ -132,16 +145,23 @@ defmodule Funkspector do
 
   defp default_options do
     %{
-      # `hackney: [:insecure]` is honored by the HTTPoison adapter (matches
-      # pre-2.0 behavior). The Req adapter translates `:insecure` into its
-      # own transport options (`verify: :verify_none`) at the boundary so
-      # the same default applies regardless of adapter choice.
-      hackney: [:insecure],
+      # TLS certificate verification is ON by default. Pass `insecure: true`
+      # to disable it for hosts with broken/self-signed certificates; both
+      # adapters honor the flag (see `Funkspector.HTTP.Adapter`).
+      insecure: false,
       timeout: 28_000,
       recv_timeout: 25_000,
-      user_agent: "Funkspector/2.0.0 (+https://hex.pm/packages/funkspector)"
+      # Upper bound on both the raw response body and the gunzipped output, to
+      # bound memory when scraping untrusted URLs (decompression is hard-capped;
+      # the raw body is checked after receipt). Set `:infinity` to disable.
+      max_body_size: 100_000_000,
+      user_agent: "Funkspector/#{version()} (+https://hex.pm/packages/funkspector)"
     }
   end
+
+  # Read from the compiled app spec so the User-Agent tracks the mix.exs
+  # version instead of duplicating it.
+  defp version, do: Application.spec(:funkspector, :vsn) |> to_string()
 
   defp scrape(url, options, scraping_function) do
     options = Map.merge(default_options(), options)
@@ -156,6 +176,7 @@ defmodule Funkspector do
     case options[:contents] do
       nil -> Document.request(url, options)
       contents when is_binary(contents) -> Document.load(url, contents)
+      _ -> {:error, url, :invalid_contents}
     end
   end
 end

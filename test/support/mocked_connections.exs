@@ -113,9 +113,15 @@ defmodule FunkspectorTest.MockedConnections do
   end
 
   def ssl_handshake_error() do
+    # The real shape Mint/OTP produce for a handshake failure: a nested
+    # {:tls_alert, {alert_atom, message_charlist}} tuple, not the flat
+    # {:tls_alert, charlist} that hackney once emitted.
     {:error,
      %Error{
-       reason: {:tls_alert, ~c"handshake failure"},
+       reason:
+         {:tls_alert,
+          {:handshake_failure,
+           ~c"TLS client: In state wait_sh received SERVER ALERT: Fatal - Handshake Failure"}},
        adapter: current_adapter()
      }}
   end

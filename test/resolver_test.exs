@@ -131,6 +131,13 @@ defmodule Funkspector.ResolverTest do
     end
   end
 
+  test "aborts gzip decompression that would exceed max_body_size" do
+    with_mock @adapter, get: fn _url, _opts -> gzip_response() end do
+      assert {:error, "https://example.com/", :body_too_large} =
+               resolve("https://example.com/", %{max_body_size: 10})
+    end
+  end
+
   test "retries with TLSv1.2 on SSL closed error" do
     call_count = :counters.new(1, [:atomics])
 
@@ -196,6 +203,135 @@ defmodule Funkspector.ResolverTest do
     with_mock @adapter,
       get: fn _url, _opts -> {:ok, %Response{status_code: 100, headers: [], body: ""}} end do
       {:error, "https://example.com/", _} = resolve("https://example.com/")
+    end
+  end
+
+  test "returns an error tuple for a 3xx response without a Location header" do
+    with_mock @adapter,
+      get: fn _url, _opts ->
+        {:ok, %Response{status_code: 301, headers: [{"Content-Type", "text/html"}], body: ""}}
+      end do
+      assert {:error, "http://example.com/", %Response{status_code: 301}} =
+               resolve("http://example.com/")
+    end
+  end
+
+  test "returns an error tuple for a 304 with no Location instead of crashing" do
+    with_mock @adapter,
+      get: fn _url, _opts -> {:ok, %Response{status_code: 304, headers: [], body: ""}} end do
+      assert {:error, "http://example.com/", %Response{status_code: 304}} =
+               resolve("http://example.com/")
+    end
+  end
+
+  test "follows redirects whose Location header uses non-standard casing" do
+    with_mock @adapter,
+      get: fn url, _opts ->
+        case url do
+          "http://example.com/1" ->
+            redirection_response("LOCATION", "http://example.com/2")
+
+          "http://example.com/2" ->
+            successful_response()
+        end
+      end do
+      {:ok, "http://example.com/2", _} = resolve("http://example.com/1")
+    end
+  end
+
+  test "returns a too_many_redirects error on an endless redirect chain" do
+    with_mock @adapter, get: fn url, _opts -> redirection_response("Location", url <> "x") end do
+      assert {:error, _url, :too_many_redirects} = resolve("http://example.com/")
+    end
+  end
+
+  test "fetches the final resource at the redirect limit" do
+    with_mock @adapter, get: fn url, _opts -> long_redirect_chain(url) end do
+      assert {:ok, "http://example.com/chain/6", %Response{status_code: 200}} =
+               resolve("http://example.com/chain/1")
+    end
+  end
+
+  test "strips basic_auth when a redirect crosses origin" do
+    test_pid = self()
+
+    with_mock @adapter,
+      get: fn url, opts ->
+        send(test_pid, {:got, url, opts[:basic_auth]})
+
+        case url do
+          "http://a.example.com/" -> redirection_response("Location", "http://b.example.com/")
+          "http://b.example.com/" -> successful_response()
+        end
+      end do
+      {:ok, "http://b.example.com/", _} =
+        resolve("http://a.example.com/", %{basic_auth: {"user", "pass"}})
+
+      assert_received {:got, "http://a.example.com/", {"user", "pass"}}
+      assert_received {:got, "http://b.example.com/", nil}
+    end
+  end
+
+  test "keeps basic_auth across a same-origin redirect" do
+    test_pid = self()
+
+    with_mock @adapter,
+      get: fn url, opts ->
+        send(test_pid, {:got, url, opts[:basic_auth]})
+
+        case url do
+          "http://example.com/1" -> redirection_response("Location", "http://example.com/2")
+          "http://example.com/2" -> successful_response()
+        end
+      end do
+      {:ok, "http://example.com/2", _} =
+        resolve("http://example.com/1", %{basic_auth: {"user", "pass"}})
+
+      assert_received {:got, "http://example.com/1", {"user", "pass"}}
+      assert_received {:got, "http://example.com/2", {"user", "pass"}}
+    end
+  end
+
+  test "retries with TLSv1.2 on a realistic Mint handshake_failure alert" do
+    call_count = :counters.new(1, [:atomics])
+
+    with_mock @adapter,
+      get: fn _url, opts ->
+        :counters.add(call_count, 1, 1)
+
+        if :counters.get(call_count, 1) == 1 do
+          {:error,
+           %Error{
+             reason:
+               {:tls_alert,
+                {:handshake_failure,
+                 ~c"TLS client: In state wait_sh received SERVER ALERT: Fatal - Handshake Failure"}},
+             adapter: @adapter
+           }}
+        else
+          assert opts[:ssl] == [versions: [:"tlsv1.2"]]
+          successful_response()
+        end
+      end do
+      {:ok, "https://example.com/", _} = resolve("https://example.com/")
+      assert :counters.get(call_count, 1) == 2
+    end
+  end
+
+  test "does not retry on a certificate-validation TLS alert" do
+    call_count = :counters.new(1, [:atomics])
+
+    with_mock @adapter,
+      get: fn _url, _opts ->
+        :counters.add(call_count, 1, 1)
+
+        {:error,
+         %Error{reason: {:tls_alert, {:bad_certificate, ~c"bad cert"}}, adapter: @adapter}}
+      end do
+      assert {:error, "https://example.com/", %Error{reason: {:tls_alert, {:bad_certificate, _}}}} =
+               resolve("https://example.com/")
+
+      assert :counters.get(call_count, 1) == 1
     end
   end
 

@@ -3,20 +3,30 @@ defmodule Funkspector.HTTP.Adapters.Req do
   Default Funkspector HTTP adapter, backed by [Req](https://hex.pm/packages/req)
   (Finch/Mint).
 
-  Req does not depend on hackney, so this adapter is the recommended path
-  for new code: it sidesteps the hackney 4.x CVE cluster
-  (CVE-2026-47066..47076) that the legacy `HTTPoison`/`hackney 1.21` stack
-  is still vulnerable to.
+  Req does not depend on hackney, so this adapter is the recommended path for
+  new code: it is unaffected by the hackney 1.x security issues the legacy
+  `HTTPoison`/`hackney 1.21` stack carries — notably
+  [CVE-2026-47075](https://nvd.nist.gov/vuln/detail/CVE-2026-47075) (CRLF
+  injection / request splitting) and
+  [CVE-2026-47076](https://nvd.nist.gov/vuln/detail/CVE-2026-47076) (SSRF via
+  URL normalization). Both are fixed in hackney 4.0.1, which HTTPoison's
+  `~> 1.21` constraint cannot reach
+  ([httpoison#501](https://github.com/edgurgel/httpoison/issues/501)).
 
   Funkspector options are translated to Req options at the boundary:
 
     * `:user_agent`   → `User-Agent` header
     * `:basic_auth`   → `:auth` (basic)
-    * `:timeout`      → `:connect_options[:timeout]`
-    * `:recv_timeout` → `:receive_timeout`
-    * `:ssl`          → `:connect_options[:transport_opts]`
+    * `:timeout`      → `:connect_options[:timeout]` (TCP/TLS connect only)
+    * `:recv_timeout` → `:receive_timeout` (per *chunk*, not a total-time bound)
+    * `:insecure`     → `verify: :verify_none` in the TLS transport opts.
+      Off by default, so certificates are verified (`verify: :verify_peer`).
+    * `:ssl`          → `:connect_options[:transport_opts]` (wins over `:insecure`)
     * `:hackney`      → translated for the well-known `:insecure` flag,
       every other key is silently dropped (and logged at `:debug`).
+    * `:max_body_size` → responses whose body exceeds this many bytes are
+      rejected with `%Funkspector.Error{reason: :body_too_large}` (checked
+      after receipt). `:infinity` (or absence) disables the check.
 
   Redirect following is disabled (`redirect: false`); `Funkspector.Resolver`
   is the sole authority for redirects.
@@ -35,13 +45,7 @@ defmodule Funkspector.HTTP.Adapters.Req do
     try do
       case Req.request(req_opts) do
         {:ok, %Req.Response{status: status, headers: headers, body: body}} ->
-          {:ok,
-           %Response{
-             status_code: status,
-             headers: normalize_headers(headers),
-             body: body_to_binary(body),
-             request_url: url
-           }}
+          build_response(url, status, headers, body_to_binary(body), opts[:max_body_size])
 
         {:error, exception} ->
           {:error, %Error{reason: error_reason(exception), adapter: __MODULE__}}
@@ -51,6 +55,24 @@ defmodule Funkspector.HTTP.Adapters.Req do
         {:error, %Error{reason: error_reason(exception), adapter: __MODULE__}}
     end
   end
+
+  defp build_response(url, status, headers, body, max_body_size) do
+    if within_limit?(body, max_body_size) do
+      {:ok,
+       %Response{
+         status_code: status,
+         headers: normalize_headers(headers),
+         body: body,
+         request_url: url
+       }}
+    else
+      {:error, %Error{reason: :body_too_large, adapter: __MODULE__}}
+    end
+  end
+
+  defp within_limit?(_body, nil), do: true
+  defp within_limit?(_body, :infinity), do: true
+  defp within_limit?(body, limit) when is_integer(limit), do: byte_size(body) <= limit
 
   ##############
   # Translation
@@ -102,17 +124,27 @@ defmodule Funkspector.HTTP.Adapters.Req do
     end
   end
 
+  # Builds the `:transport_opts` for the TLS connection by layering, in
+  # increasing precedence: the `:insecure` flag, the legacy `:hackney`
+  # `:insecure`/`:ssl_options`, and finally an explicit `:ssl` keyword list.
+  # An explicit `:ssl` therefore always wins, and any of the three can turn
+  # verification off. When none are given the result is `nil`, so Req/Mint
+  # keeps its secure `verify: :verify_peer` default.
   defp transport_opts(opts) do
-    from_ssl = opts[:ssl]
-    from_hackney = hackney_transport_opts(opts[:hackney])
-
-    case {from_ssl, from_hackney} do
-      {nil, nil} -> nil
-      {ssl, nil} -> ssl
-      {nil, hackney} -> hackney
-      {ssl, hackney} -> Keyword.merge(hackney, ssl)
+    [
+      insecure_transport_opts(opts[:insecure]),
+      hackney_transport_opts(opts[:hackney]),
+      opts[:ssl]
+    ]
+    |> Enum.reject(&is_nil/1)
+    |> case do
+      [] -> nil
+      layers -> Enum.reduce(layers, [], &Keyword.merge(&2, &1))
     end
   end
+
+  defp insecure_transport_opts(true), do: [verify: :verify_none]
+  defp insecure_transport_opts(_), do: nil
 
   defp hackney_transport_opts(nil), do: nil
 
@@ -173,9 +205,16 @@ defmodule Funkspector.HTTP.Adapters.Req do
   ##############
 
   # Map Req/Mint exceptions onto the `gen_tcp`/`inet` atom contract that
-  # `Funkspector.Resolver` and external callers expect.
+  # `Funkspector.Resolver` and external callers expect. Exceptions without a
+  # transport `:reason` (e.g. a generic runtime error inside Req) are collapsed
+  # to a stable `{:adapter_error, message}` tuple rather than leaking the raw
+  # library struct past the normalized contract.
   defp error_reason(%{reason: reason}) when not is_nil(reason), do: normalize_reason(reason)
-  defp error_reason(exception), do: exception
+
+  defp error_reason(exception) when is_exception(exception),
+    do: {:adapter_error, Exception.message(exception)}
+
+  defp error_reason(other), do: other
 
   defp normalize_reason(:nxdomain), do: :nxdomain
   defp normalize_reason(:timeout), do: :timeout
