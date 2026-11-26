@@ -48,6 +48,17 @@ defmodule Funkspector do
   @doc """
   Follows redirections for the given URL, returning the final URL and response.
 
+  By default the body of the final response is downloaded whole. With the Req
+  adapter, `:body` changes that:
+
+    * `body: :headers` reads only the status and headers; the response's body
+      is `nil`. Use it to learn a URL's final address or content type without
+      downloading it.
+    * `body: :stream` leaves the body unread: the response's body is an
+      enumerable of binaries that the calling process consumes, and
+      `:max_body_size` doesn't apply. The request asks for an uncompressed
+      body. Call `cancel/1` when you won't read it.
+
   ## Examples
 
       iex> { :ok, final_url, _response } = Funkspector.resolve("http://github.com")
@@ -61,6 +72,18 @@ defmodule Funkspector do
 
     Resolver.resolve(url, options)
   end
+
+  @doc """
+  Cancels the download of a response returned with `body: :stream`, when the
+  caller won't read its body. Does nothing for any other response.
+  """
+  @spec cancel(Response.t()) :: :ok
+  def cancel(%Response{body: %Req.Response.Async{} = body}) do
+    Req.cancel_async_response(%Req.Response{body: body})
+    :ok
+  end
+
+  def cancel(%Response{}), do: :ok
 
   @doc """
   Parses an HTML document, extracting links and metadata.

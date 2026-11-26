@@ -138,5 +138,68 @@ defmodule Funkspector.HTTP.Adapters.ReqTest do
     end
   end
 
+  describe "body modes" do
+    setup do
+      {:ok, bypass: Bypass.open()}
+    end
+
+    test "headers mode returns status and headers without reading an endless body" do
+      url = FunkspectorTest.EndlessServer.start("application/pdf")
+
+      task = Task.async(fn -> ReqAdapter.get(url, %{body: :headers}) end)
+
+      assert {:ok, %Funkspector.Response{status_code: 200, body: nil, headers: headers}} =
+               Task.await(task, 5_000)
+
+      assert {"content-type", "application/pdf"} in headers
+    end
+
+    test "stream mode yields the body in chunks", %{bypass: bypass} do
+      Bypass.expect_once(bypass, "GET", "/chunks", fn conn ->
+        conn = Plug.Conn.send_chunked(conn, 200)
+
+        Enum.reduce(["a", "b", "c"], conn, fn data, conn ->
+          {:ok, conn} = Plug.Conn.chunk(conn, data)
+          conn
+        end)
+      end)
+
+      assert {:ok, %Funkspector.Response{status_code: 200, body: body}} =
+               ReqAdapter.get(server_url(bypass, "/chunks"), %{body: :stream})
+
+      assert Enum.join(body) == "abc"
+    end
+
+    test "stream mode asks for an uncompressed body", %{bypass: bypass} do
+      Bypass.expect_once(bypass, "GET", "/identity", fn conn ->
+        assert Plug.Conn.get_req_header(conn, "accept-encoding") == ["identity"]
+        Plug.Conn.resp(conn, 200, "pdf")
+      end)
+
+      assert {:ok, %Funkspector.Response{body: body}} =
+               ReqAdapter.get(server_url(bypass, "/identity"), %{body: :stream})
+
+      assert Enum.join(body) == "pdf"
+    end
+
+    test "stream mode ignores max_body_size, which the caller enforces", %{bypass: bypass} do
+      Bypass.expect_once(bypass, "GET", "/big", fn conn ->
+        Plug.Conn.resp(conn, 200, String.duplicate("a", 2_000))
+      end)
+
+      assert {:ok, %Funkspector.Response{body: body}} =
+               ReqAdapter.get(server_url(bypass, "/big"), %{body: :stream, max_body_size: 100})
+
+      assert byte_size(Enum.join(body)) == 2_000
+    end
+
+    test "cancel stops an endless stream the caller won't read" do
+      url = FunkspectorTest.EndlessServer.start()
+
+      assert {:ok, response} = ReqAdapter.get(url, %{body: :stream})
+      assert :ok = Funkspector.cancel(response)
+    end
+  end
+
   defp server_url(%Bypass{port: port}, path), do: "http://localhost:#{port}#{path}"
 end

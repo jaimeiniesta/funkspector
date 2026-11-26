@@ -86,4 +86,13 @@ defmodule Funkspector.HTTP.Adapters.HTTPoisonTest do
       refute Keyword.has_key?(request_options, :max_body_size)
     end
   end
+
+  describe "body modes" do
+    test "headers and stream modes are not supported" do
+      for mode <- [:headers, :stream] do
+        assert {:error, %Funkspector.Error{reason: :unsupported_body_mode}} =
+                 HTTPoisonAdapter.get("https://example.com", %{body: mode})
+      end
+    end
+  end
 end

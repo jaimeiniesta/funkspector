@@ -44,6 +44,10 @@ if Code.ensure_loaded?(HTTPoison) do
     alias Funkspector.{Response, Error}
 
     @impl true
+    def get(_url, %{body: mode}) when mode in [:headers, :stream] do
+      {:error, %Error{reason: :unsupported_body_mode, adapter: __MODULE__}}
+    end
+
     def get(url, opts) when is_map(opts) do
       {headers, request_options} = request_headers_and_options(opts)
 

@@ -341,4 +341,30 @@ defmodule Funkspector.ResolverTest do
     assert {:ok, "https://www.freedomfromtorture.org/", %Response{status_code: 200}} =
              resolve("https://www.freedomfromtorture.org/")
   end
+
+  # Stream mode is a Req adapter feature, so these use it whatever the suite runs.
+  describe "stream mode with a real server" do
+    setup do
+      {:ok, bypass: Bypass.open()}
+    end
+
+    test "follows redirects and streams the final body", %{bypass: bypass} do
+      Bypass.expect_once(bypass, "GET", "/a", fn conn ->
+        conn
+        |> Plug.Conn.put_resp_header("location", "/b")
+        |> Plug.Conn.resp(302, "moved")
+      end)
+
+      Bypass.expect_once(bypass, "GET", "/b", fn conn -> Plug.Conn.resp(conn, 200, "pdf") end)
+
+      assert {:ok, final_url, %Response{body: body}} =
+               resolve("http://localhost:#{bypass.port}/a", %{
+                 body: :stream,
+                 adapter: Funkspector.HTTP.Adapters.Req
+               })
+
+      assert String.ends_with?(final_url, "/b")
+      assert Enum.join(body) == "pdf"
+    end
+  end
 end

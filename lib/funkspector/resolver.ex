@@ -109,11 +109,13 @@ defmodule Funkspector.Resolver do
   end
 
   defp dispatch(url, %Response{status_code: 300} = response, _max_redirects, _options) do
+    Funkspector.cancel(response)
     {:error, url, response}
   end
 
   defp dispatch(url, %Response{status_code: status} = response, _max_redirects, _options)
        when status < 200 or status >= 400 do
+    Funkspector.cancel(response)
     {:error, url, response}
   end
 
@@ -126,6 +128,9 @@ defmodule Funkspector.Resolver do
   # exhausted we return an explicit `:too_many_redirects` error instead of an
   # `:ok` tuple for a URL we never fetched.
   defp follow_redirect(url, headers, response, max_redirects, options) do
+    # In headers and stream modes nobody reads a redirect's body.
+    Funkspector.cancel(response)
+
     case followable_location(url, headers) do
       nil ->
         {:error, url, response}

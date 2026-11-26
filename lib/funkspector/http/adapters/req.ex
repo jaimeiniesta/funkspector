@@ -40,6 +40,33 @@ defmodule Funkspector.HTTP.Adapters.Req do
   alias Funkspector.{Response, Error}
 
   @impl true
+  def get(url, %{body: mode} = opts) when mode in [:headers, :stream] do
+    req_opts =
+      url
+      |> build_req_options(Map.delete(opts, :max_body_size))
+      |> Keyword.merge(into: :self, compressed: false)
+      |> Keyword.update!(:headers, &[{"accept-encoding", "identity"} | &1])
+
+    try do
+      case Req.request(req_opts) do
+        {:ok, %Req.Response{status: status, headers: headers} = response} ->
+          {:ok,
+           %Response{
+             status_code: status,
+             headers: normalize_headers(headers),
+             body: async_body(response, mode),
+             request_url: url
+           }}
+
+        {:error, exception} ->
+          {:error, %Error{reason: error_reason(exception), adapter: __MODULE__}}
+      end
+    rescue
+      exception ->
+        {:error, %Error{reason: error_reason(exception), adapter: __MODULE__}}
+    end
+  end
+
   def get(url, opts) when is_map(opts) do
     req_opts = build_req_options(url, opts)
 
@@ -59,6 +86,15 @@ defmodule Funkspector.HTTP.Adapters.Req do
         {:error, %Error{reason: error_reason(exception), adapter: __MODULE__}}
     end
   end
+
+  # In headers mode the body is never read: the connection is cancelled as
+  # soon as the headers are in. In stream mode the caller reads it.
+  defp async_body(response, :headers) do
+    Req.cancel_async_response(response)
+    nil
+  end
+
+  defp async_body(%Req.Response{body: body}, :stream), do: body
 
   defp build_response(url, status, headers, body, max_body_size) do
     if within_limit?(body, max_body_size) do
