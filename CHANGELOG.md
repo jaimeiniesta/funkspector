@@ -14,13 +14,15 @@ Pluggable HTTP adapter. Funkspector no longer hardcodes HTTPoison/hackney; inste
 - `:adapter` option on every public call for per-call adapter override.
 - App-wide adapter configuration via `config :funkspector, :http_adapter, …`.
 - `:insecure` option (default `false`) to disable TLS certificate verification per call, honored by both adapters.
-- `:max_body_size` option (default 100 MB) that bounds both the raw response body and gzip decompression; oversized responses return `%Funkspector.Error{reason: :body_too_large}`. Set `:infinity` to disable. The Req adapter stops reading as soon as the body passes the limit, so a huge or endless body is never received in full.
+- `:max_body_size` option (default 100 MB) that bounds both the raw response body and gzip decompression; oversized responses return `%Funkspector.Error{reason: :body_too_large}`. Set `:infinity` to disable.
 - `:body` option for `resolve/2` with the Req adapter: `:headers` reads only the status and headers, and `:stream` returns the body as an enumerable for the caller to consume. Streamed requests ask for an uncompressed body. The HTTPoison adapter returns `%Funkspector.Error{reason: :unsupported_body_mode}` for both.
 - `Funkspector.cancel/1` stops the download of a streamed body the caller won't read.
 - `:check_url` option: a function called with each URL before it is requested, the first one and every redirect target. `{:error, reason}` stops with `%Funkspector.Error{reason: {:blocked, reason}}`. Use it to refuse private addresses (SSRF).
 - Mix aliases: `mix test.httpoison` (run the suite against the HTTPoison adapter) and `mix test.adapters` (run both back-to-back).
 
 ### Changed (breaking)
+
+- **Every Req adapter download now reads the body chunk by chunk** and stops as soon as it passes `max_body_size`, which is on by default (100 MB). Before, the whole body was received and measured afterwards, so a huge or endless body could exhaust memory. The request still asks for `accept-encoding: gzip`, and `Funkspector.Resolver` now inflates it (within the same limit) instead of Req. Only `max_body_size: :infinity` keeps the old path.
 
 - Errors are now `%Funkspector.Error{reason: atom, adapter: module}` instead of `%HTTPoison.Error{reason: atom, id: nil}`. The `:reason` atom (e.g. `:nxdomain`, `:timeout`, `:closed`) is unchanged, so most pattern matches need only a struct rename.
 - Non-2xx HTTP responses surface as `%Funkspector.Response{status_code: integer, headers: list, body: binary}` instead of `%HTTPoison.Response{}`.

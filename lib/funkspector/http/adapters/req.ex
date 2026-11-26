@@ -130,8 +130,23 @@ defmodule Funkspector.HTTP.Adapters.Req do
     base
     |> maybe_put(:auth, basic_auth(opts))
     |> maybe_put(:receive_timeout, opts[:recv_timeout])
-    |> maybe_put(:into, body_limit(opts[:max_body_size]))
+    |> put_body_limit(opts[:max_body_size])
     |> Keyword.merge(connect_options(opts))
+  end
+
+  # Req only asks for a compressed body when it reads the body itself, so with
+  # the chunk-by-chunk limit we ask for gzip ourselves. `Funkspector.Resolver`
+  # inflates it, within the same limit.
+  defp put_body_limit(req_opts, limit) do
+    case body_limit(limit) do
+      nil ->
+        req_opts
+
+      into ->
+        req_opts
+        |> Keyword.put(:into, into)
+        |> Keyword.update!(:headers, &[{"accept-encoding", "gzip"} | &1])
+    end
   end
 
   # With an integer limit the body is collected chunk by chunk and the

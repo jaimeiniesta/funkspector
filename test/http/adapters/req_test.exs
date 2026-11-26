@@ -124,6 +124,16 @@ defmodule Funkspector.HTTP.Adapters.ReqTest do
       assert byte_size(body) == 512_000
     end
 
+    test "still asks for a gzipped body, which the resolver inflates", %{bypass: bypass} do
+      Bypass.expect_once(bypass, "GET", "/accept", fn conn ->
+        assert Plug.Conn.get_req_header(conn, "accept-encoding") == ["gzip"]
+        Plug.Conn.resp(conn, 200, "ok")
+      end)
+
+      assert {:ok, %Funkspector.Response{body: "ok"}} =
+               ReqAdapter.get(server_url(bypass, "/accept"), %{max_body_size: 1_000_000})
+    end
+
     test "a gzipped body under the limit still reaches the caller inflated", %{bypass: bypass} do
       Bypass.expect_once(bypass, "GET", "/gzipped", fn conn ->
         conn
