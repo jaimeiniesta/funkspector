@@ -14,7 +14,7 @@ Pluggable HTTP adapter. Funkspector no longer hardcodes HTTPoison/hackney; inste
 - `:adapter` option on every public call for per-call adapter override.
 - App-wide adapter configuration via `config :funkspector, :http_adapter, …`.
 - `:insecure` option (default `false`) to disable TLS certificate verification per call, honored by both adapters.
-- `:max_body_size` option (default 100 MB) that bounds both the raw response body and gzip decompression; oversized responses return `%Funkspector.Error{reason: :body_too_large}`. Set `:infinity` to disable.
+- `:max_body_size` option (default 100 MB) that bounds both the raw response body and gzip decompression; oversized responses return `%Funkspector.Error{reason: :body_too_large}`. Set `:infinity` to disable. The Req adapter stops reading as soon as the body passes the limit, so a huge or endless body is never received in full.
 - Mix aliases: `mix test.httpoison` (run the suite against the HTTPoison adapter) and `mix test.adapters` (run both back-to-back).
 
 ### Changed (breaking)

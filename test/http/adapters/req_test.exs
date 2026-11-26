@@ -93,4 +93,50 @@ defmodule Funkspector.HTTP.Adapters.ReqTest do
       end
     end
   end
+
+  describe "max_body_size with a real server" do
+    setup do
+      {:ok, bypass: Bypass.open()}
+    end
+
+    test "stops reading an endless body at the limit" do
+      url = FunkspectorTest.EndlessServer.start()
+
+      task =
+        Task.async(fn ->
+          ReqAdapter.get(url, %{
+            max_body_size: 1_000_000,
+            recv_timeout: 2_000
+          })
+        end)
+
+      assert {:error, %Funkspector.Error{reason: :body_too_large}} = Task.await(task, 5_000)
+    end
+
+    test "a body under the limit is returned whole", %{bypass: bypass} do
+      Bypass.expect_once(bypass, "GET", "/small", fn conn ->
+        Plug.Conn.resp(conn, 200, String.duplicate("a", 512_000))
+      end)
+
+      assert {:ok, %Funkspector.Response{body: body}} =
+               ReqAdapter.get(server_url(bypass, "/small"), %{max_body_size: 1_000_000})
+
+      assert byte_size(body) == 512_000
+    end
+
+    test "a gzipped body under the limit still reaches the caller inflated", %{bypass: bypass} do
+      Bypass.expect_once(bypass, "GET", "/gzipped", fn conn ->
+        conn
+        |> Plug.Conn.put_resp_header("content-encoding", "gzip")
+        |> Plug.Conn.resp(200, :zlib.gzip("<html>hello</html>"))
+      end)
+
+      assert {:ok, _url, %Funkspector.Response{body: "<html>hello</html>"}} =
+               Funkspector.Resolver.resolve(server_url(bypass, "/gzipped"), %{
+                 max_body_size: 1_000_000
+               })
+    end
+  end
+
+  defp server_url(%Bypass{port: port}, path), do: "http://localhost:#{port}#{path}"
 end
