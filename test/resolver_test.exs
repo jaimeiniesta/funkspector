@@ -342,6 +342,51 @@ defmodule Funkspector.ResolverTest do
              resolve("https://www.freedomfromtorture.org/")
   end
 
+  describe "check_url" do
+    test "is called for the first URL and every redirect hop" do
+      test_pid = self()
+
+      check = fn url ->
+        send(test_pid, {:checked, url})
+        :ok
+      end
+
+      with_mock @adapter, get: fn url, _opts -> redirect_from(url) end do
+        {:ok, "http://example.com/redirect/3", _} =
+          resolve("http://example.com/redirect/1", %{check_url: check})
+      end
+
+      assert_received {:checked, "http://example.com/redirect/1"}
+      assert_received {:checked, "http://example.com/redirect/2"}
+      assert_received {:checked, "http://example.com/redirect/3"}
+    end
+
+    test "a blocked hop stops before its request" do
+      check = fn
+        "http://example.com/redirect/2" -> {:error, :private_ip}
+        _url -> :ok
+      end
+
+      with_mock @adapter, get: fn url, _opts -> redirect_from(url) end do
+        assert {:error, "http://example.com/redirect/2", %Error{reason: {:blocked, :private_ip}}} =
+                 resolve("http://example.com/redirect/1", %{check_url: check})
+
+        assert_called_exactly(@adapter.get(:_, :_), 1)
+      end
+    end
+
+    test "a blocked first URL is never requested" do
+      with_mock @adapter, get: fn url, _opts -> redirect_from(url) end do
+        assert {:error, "http://example.com/redirect/1", %Error{reason: {:blocked, :loopback}}} =
+                 resolve("http://example.com/redirect/1", %{
+                   check_url: fn _ -> {:error, :loopback} end
+                 })
+
+        assert_not_called(@adapter.get(:_, :_))
+      end
+    end
+  end
+
   # Stream mode is a Req adapter feature, so these use it whatever the suite runs.
   describe "stream mode with a real server" do
     setup do

@@ -78,7 +78,19 @@ defmodule Funkspector.Resolver do
   # Private functions #
   #####################
 
+  # `:check_url` lets the caller refuse a URL, such as one pointing at a private
+  # address, before it is requested: the first one and every redirect target.
   defp resolve_url(url, max_redirects, options) do
+    case check_url(url, options[:check_url]) do
+      :ok -> request(url, max_redirects, options)
+      {:error, reason} -> {:error, url, %Error{reason: {:blocked, reason}}}
+    end
+  end
+
+  defp check_url(_url, nil), do: :ok
+  defp check_url(url, check) when is_function(check, 1), do: check.(url)
+
+  defp request(url, max_redirects, options) do
     case adapter(options).get(url, options) do
       {:ok, response} ->
         case deflate(response, max_body_size(options)) do
@@ -91,7 +103,7 @@ defmodule Funkspector.Resolver do
         # does NOT consume the redirect budget; the `is_nil(options[:ssl])`
         # guard caps it at a single attempt (the merge sets `:ssl`).
         if retry_ssl?(reason) and is_nil(options[:ssl]) do
-          resolve_url(url, max_redirects, Map.merge(%{ssl: [versions: [:"tlsv1.2"]]}, options))
+          request(url, max_redirects, Map.merge(%{ssl: [versions: [:"tlsv1.2"]]}, options))
         else
           {:error, url, error}
         end

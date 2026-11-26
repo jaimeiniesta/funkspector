@@ -17,6 +17,7 @@ Pluggable HTTP adapter. Funkspector no longer hardcodes HTTPoison/hackney; inste
 - `:max_body_size` option (default 100 MB) that bounds both the raw response body and gzip decompression; oversized responses return `%Funkspector.Error{reason: :body_too_large}`. Set `:infinity` to disable. The Req adapter stops reading as soon as the body passes the limit, so a huge or endless body is never received in full.
 - `:body` option for `resolve/2` with the Req adapter: `:headers` reads only the status and headers, and `:stream` returns the body as an enumerable for the caller to consume. Streamed requests ask for an uncompressed body. The HTTPoison adapter returns `%Funkspector.Error{reason: :unsupported_body_mode}` for both.
 - `Funkspector.cancel/1` stops the download of a streamed body the caller won't read.
+- `:check_url` option: a function called with each URL before it is requested, the first one and every redirect target. `{:error, reason}` stops with `%Funkspector.Error{reason: {:blocked, reason}}`. Use it to refuse private addresses (SSRF).
 - Mix aliases: `mix test.httpoison` (run the suite against the HTTPoison adapter) and `mix test.adapters` (run both back-to-back).
 
 ### Changed (breaking)

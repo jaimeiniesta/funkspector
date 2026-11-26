@@ -59,6 +59,10 @@ defmodule Funkspector do
       `:max_body_size` doesn't apply. The request asks for an uncompressed
       body. Call `cancel/1` when you won't read it.
 
+  `:check_url`, a function of one URL returning `:ok` or `{:error, reason}`,
+  is called before every request, the first one and each redirect target. An
+  error stops there with `%Funkspector.Error{reason: {:blocked, reason}}`.
+
   ## Examples
 
       iex> { :ok, final_url, _response } = Funkspector.resolve("http://github.com")
