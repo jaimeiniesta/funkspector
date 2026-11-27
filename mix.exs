@@ -4,7 +4,7 @@ defmodule Funkspector.Mixfile do
   def project do
     [
       app: :funkspector,
-      version: "2.0.1",
+      version: "2.0.0",
       elixir: "~> 1.17",
       description: "Web page inspector for Elixir",
       package: package(),
@@ -74,7 +74,7 @@ defmodule Funkspector.Mixfile do
       #     others), and HTTPoison 3.0 makes `ssl: [verify: :verify_none]`
       #     work again, the regression reported in
       #     https://github.com/edgurgel/httpoison/issues/501.
-      #   * httpoison 2.3 + hackney 1.21: the 2.0.0 stack, kept so existing
+      #   * httpoison 2.3 + hackney 1.21: the 1.6.0 stack, kept so existing
       #     consumers are not forced to upgrade. hackney 1.21 is affected by
       #     those advisories; hackney 1.22+ hit httpoison#501 under 2.x.
       #
