@@ -2,7 +2,9 @@
 
 All notable changes to Funkspector are documented in this file.
 
-## [Unreleased]
+## [2.1.0](https://github.com/jaimeiniesta/funkspector/compare/6d70092...63d4ff6) - 2026-11-27
+
+Bounded and streaming downloads with the Req adapter, and a hook to check each URL before it is requested.
 
 ### Added
 

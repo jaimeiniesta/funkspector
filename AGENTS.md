@@ -4,7 +4,7 @@ This file provides guidance to AI agents when working with code in this reposito
 
 ## Project Overview
 
-Funkspector is an Elixir library (Hex package) for web scraping. It extracts data from HTML pages, XML sitemaps, and text sitemaps. Version 2.0.0, requires Elixir ~> 1.17.
+Funkspector is an Elixir library (Hex package) for web scraping. It extracts data from HTML pages, XML sitemaps, and text sitemaps. Version 2.1.0, requires Elixir ~> 1.17.
 
 ## Common Commands
 
