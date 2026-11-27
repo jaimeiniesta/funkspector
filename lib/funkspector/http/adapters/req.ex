@@ -25,8 +25,9 @@ defmodule Funkspector.HTTP.Adapters.Req do
     * `:hackney`      → translated for the well-known `:insecure` flag,
       every other key is silently dropped (and logged at `:debug`).
     * `:max_body_size` → responses whose body exceeds this many bytes are
-      rejected with `%Funkspector.Error{reason: :body_too_large}` (checked
-      after receipt). `:infinity` (or absence) disables the check.
+      rejected with `%Funkspector.Error{reason: :body_too_large}`. The body is
+      read chunk by chunk and the download stops as soon as it passes the
+      limit. `:infinity` (or absence) disables the check.
 
   Redirect following is disabled (`redirect: false`); `Funkspector.Resolver`
   is the sole authority for redirects.
@@ -39,13 +40,23 @@ defmodule Funkspector.HTTP.Adapters.Req do
   alias Funkspector.{Response, Error}
 
   @impl true
-  def get(url, opts) when is_map(opts) do
-    req_opts = build_req_options(url, opts)
+  def get(url, %{body: mode} = opts) when mode in [:headers, :stream] do
+    req_opts =
+      url
+      |> build_req_options(Map.delete(opts, :max_body_size))
+      |> Keyword.merge(into: :self, compressed: false)
+      |> Keyword.update!(:headers, &[{"accept-encoding", "identity"} | &1])
 
     try do
       case Req.request(req_opts) do
-        {:ok, %Req.Response{status: status, headers: headers, body: body}} ->
-          build_response(url, status, headers, body_to_binary(body), opts[:max_body_size])
+        {:ok, %Req.Response{status: status, headers: headers} = response} ->
+          {:ok,
+           %Response{
+             status_code: status,
+             headers: normalize_headers(headers),
+             body: async_body(response, mode),
+             request_url: url
+           }}
 
         {:error, exception} ->
           {:error, %Error{reason: error_reason(exception), adapter: __MODULE__}}
@@ -55,6 +66,35 @@ defmodule Funkspector.HTTP.Adapters.Req do
         {:error, %Error{reason: error_reason(exception), adapter: __MODULE__}}
     end
   end
+
+  def get(url, opts) when is_map(opts) do
+    req_opts = build_req_options(url, opts)
+
+    try do
+      case Req.request(req_opts) do
+        {:ok, %Req.Response{private: %{funkspector_too_large: true}}} ->
+          {:error, %Error{reason: :body_too_large, adapter: __MODULE__}}
+
+        {:ok, %Req.Response{status: status, headers: headers} = response} ->
+          build_response(url, status, headers, received_body(response), opts[:max_body_size])
+
+        {:error, exception} ->
+          {:error, %Error{reason: error_reason(exception), adapter: __MODULE__}}
+      end
+    rescue
+      exception ->
+        {:error, %Error{reason: error_reason(exception), adapter: __MODULE__}}
+    end
+  end
+
+  # In headers mode the body is never read: the connection is cancelled as
+  # soon as the headers are in. In stream mode the caller reads it.
+  defp async_body(response, :headers) do
+    Req.cancel_async_response(response)
+    nil
+  end
+
+  defp async_body(%Req.Response{body: body}, :stream), do: body
 
   defp build_response(url, status, headers, body, max_body_size) do
     if within_limit?(body, max_body_size) do
@@ -90,8 +130,53 @@ defmodule Funkspector.HTTP.Adapters.Req do
     base
     |> maybe_put(:auth, basic_auth(opts))
     |> maybe_put(:receive_timeout, opts[:recv_timeout])
+    |> put_body_limit(opts[:max_body_size])
     |> Keyword.merge(connect_options(opts))
   end
+
+  # Req only asks for a compressed body when it reads the body itself, so with
+  # the chunk-by-chunk limit we ask for gzip ourselves. `Funkspector.Resolver`
+  # inflates it, within the same limit.
+  defp put_body_limit(req_opts, limit) do
+    case body_limit(limit) do
+      nil ->
+        req_opts
+
+      into ->
+        req_opts
+        |> Keyword.put(:into, into)
+        |> Keyword.update!(:headers, &[{"accept-encoding", "gzip"} | &1])
+    end
+  end
+
+  # With an integer limit the body is collected chunk by chunk and the
+  # download stops as soon as it passes the limit, so a huge or endless body
+  # never has to be received in full. Chunks are kept as iodata in the
+  # response's private map and joined once at the end.
+  defp body_limit(limit) when is_integer(limit) do
+    fn {:data, data}, {request, response} ->
+      size = Req.Response.get_private(response, :funkspector_size, 0) + byte_size(data)
+      chunks = [Req.Response.get_private(response, :funkspector_chunks, []) | data]
+
+      response =
+        response
+        |> Req.Response.put_private(:funkspector_size, size)
+        |> Req.Response.put_private(:funkspector_chunks, chunks)
+
+      if size > limit do
+        {:halt, {request, Req.Response.put_private(response, :funkspector_too_large, true)}}
+      else
+        {:cont, {request, response}}
+      end
+    end
+  end
+
+  defp body_limit(_limit), do: nil
+
+  defp received_body(%Req.Response{private: %{funkspector_chunks: chunks}}),
+    do: IO.iodata_to_binary(chunks)
+
+  defp received_body(%Req.Response{body: body}), do: body_to_binary(body)
 
   defp request_headers(opts) do
     []

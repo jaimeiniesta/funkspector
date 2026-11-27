@@ -86,6 +86,7 @@ defmodule Funkspector.Mixfile do
       {:floki, "~> 0.37.0"},
       {:sweet_xml, "~> 0.7.5"},
       {:mock, "~> 0.3.9", only: :test},
+      {:bypass, "~> 2.1", only: :test},
       {:ex_doc, ">= 0.36.0", only: :dev, runtime: false},
       {:credo, "~> 1.7.10", only: [:dev, :test], runtime: false}
     ]

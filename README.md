@@ -125,6 +125,37 @@ when scraping untrusted URLs. Oversized responses return
 Funkspector.page_scrape("https://example.com", %{max_body_size: 5_000_000})
 ```
 
+#### Reading only the headers, or streaming the body
+
+With the Req adapter, `resolve/2` can skip the body or hand it to you unread:
+
+```elixir
+# Status and headers only: the body is never downloaded.
+{:ok, final_url, %Funkspector.Response{headers: headers}} =
+  Funkspector.resolve("https://example.com/report.pdf", %{body: :headers})
+
+# The body as an enumerable of binaries, read by the calling process.
+{:ok, _final_url, %Funkspector.Response{body: chunks} = response} =
+  Funkspector.resolve("https://example.com/report.pdf", %{body: :stream})
+
+Enum.each(chunks, &IO.binwrite(file, &1))
+# or, if you decide not to read it:
+Funkspector.cancel(response)
+```
+
+`max_body_size` doesn't apply to a streamed body: count the bytes as you read
+them. Streamed requests ask for an uncompressed body.
+
+#### Checking each URL before it is requested
+
+`check_url` is called with the URL before every request, the first one and
+each redirect target. Return `:ok` to go ahead, or `{:error, reason}` to stop
+with `%Funkspector.Error{reason: {:blocked, reason}}` before anything is sent:
+
+```elixir
+Funkspector.page_scrape(url, %{check_url: &MyApp.Ssrf.check/1})
+```
+
 #### Loading pre-fetched contents
 
 You can skip the HTTP request if you already have the document contents:
@@ -221,10 +252,10 @@ you point it at untrusted or user-supplied URLs, keep in mind:
 - **No SSRF filtering.** `valid_url?/1` accepts `localhost`, IP-literal hosts
   (including private ranges like `10.0.0.0/8`, link-local `169.254.169.254`,
   and IPv6 loopback), and these are reachable both directly and via a redirect
-  from a public URL. Funkspector does not block them — enforce your own
-  allow/deny policy or network-level egress controls before fetching
-  attacker-influenced URLs. Note that input validation alone is insufficient,
-  because a public URL can redirect to an internal one.
+  from a public URL. Funkspector does not block them by itself — pass your own
+  policy as `check_url`, which also runs on every redirect target, or use
+  network-level egress controls. Checking only the starting URL is
+  insufficient, because a public URL can redirect to an internal one.
 - **TLS is verified by default.** Disable it only deliberately, per call, with
   `%{insecure: true}`.
 - **Bound the response size** with `max_body_size` (on by default at 100 MB)

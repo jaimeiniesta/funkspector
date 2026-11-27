@@ -2,6 +2,18 @@
 
 All notable changes to Funkspector are documented in this file.
 
+## [Unreleased]
+
+### Added
+
+- `:body` option for `resolve/2` with the Req adapter: `:headers` reads only the status and headers, and `:stream` returns the body as an enumerable for the caller to consume. Streamed requests ask for an uncompressed body. The HTTPoison adapter returns `%Funkspector.Error{reason: :unsupported_body_mode}` for both.
+- `Funkspector.cancel/1` stops the download of a streamed body the caller won't read.
+- `:check_url` option: a function called with each URL before it is requested, the first one and every redirect target. `{:error, reason}` stops with `%Funkspector.Error{reason: {:blocked, reason}}`. Use it to refuse private addresses (SSRF).
+
+### Changed
+
+- **Every Req adapter download now reads the body chunk by chunk** and stops as soon as it passes `max_body_size`, which is on by default (100 MB). Before, the whole body was received and measured afterwards, so a huge or endless body could exhaust memory. The request still asks for `accept-encoding: gzip`, and `Funkspector.Resolver` now inflates it (within the same limit) instead of Req. Only `max_body_size: :infinity` keeps the old path.
+
 ## [2.0.0](https://github.com/jaimeiniesta/funkspector/compare/842fe34...051a0f3) - 2026-11-27
 
 Pluggable HTTP adapter. Funkspector no longer hardcodes HTTPoison/hackney; instead it talks to an `Funkspector.HTTP.Adapter` behaviour with two adapters shipped in-tree.

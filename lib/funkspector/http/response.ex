@@ -12,7 +12,7 @@ defmodule Funkspector.Response do
   @type t :: %__MODULE__{
           status_code: non_neg_integer() | nil,
           headers: [header()],
-          body: binary() | nil,
+          body: binary() | nil | Enumerable.t(),
           request_url: String.t() | nil
         }
 
