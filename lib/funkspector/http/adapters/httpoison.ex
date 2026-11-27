@@ -103,12 +103,40 @@ if Code.ensure_loaded?(HTTPoison) do
     # `insecure: true` disables hackney's certificate verification, mirroring the
     # Req adapter. It is folded into the `:hackney` option list (hackney's native
     # `:insecure` flag) so explicit `:hackney` opts the caller passed are kept.
+    #
+    # An explicit `:ssl` list (e.g. the Resolver's tlsv1.2 retry) needs
+    # `verify: :verify_none` too: HTTPoison turns `:ssl` into hackney
+    # `:ssl_options` with verification on, and those win over the `:insecure`
+    # flag. hackney 1.21 also keeps its hostname-checking `verify_fun`, which
+    # OTP runs even under `verify_none` (httpoison#501), so an accept-all
+    # `verify_fun` goes with it, as HTTPoison 3 does. A `:verify` the caller set
+    # in `:ssl` is kept, as in the Req adapter.
     defp translate_insecure(%{insecure: true} = options) do
       hackney = Enum.uniq([:insecure | Map.get(options, :hackney, [])])
-      Map.put(options, :hackney, hackney)
+
+      options
+      |> Map.put(:hackney, hackney)
+      |> insecure_ssl()
     end
 
     defp translate_insecure(options), do: options
+
+    defp insecure_ssl(%{ssl: ssl} = options) when is_list(ssl) and ssl != [] do
+      if Keyword.has_key?(ssl, :verify) do
+        options
+      else
+        ssl =
+          ssl
+          |> Keyword.put(:verify, :verify_none)
+          |> Keyword.put_new(:verify_fun, {&accept_any_cert/3, nil})
+
+        Map.put(options, :ssl, ssl)
+      end
+    end
+
+    defp insecure_ssl(options), do: options
+
+    defp accept_any_cert(_cert, _event, state), do: {:valid, state}
 
     defp request_headers(options) do
       headers = [{"User-Agent", options[:user_agent]}]
