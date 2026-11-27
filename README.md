@@ -170,7 +170,8 @@ Funkspector 2.0 ships with two HTTP adapters:
   (recommended) and HTTPoison 2.3 / hackney 1.21. hackney 1.21 is affected by
   [CVE-2026-47075](https://nvd.nist.gov/vuln/detail/CVE-2026-47075) and
   [CVE-2026-47076](https://nvd.nist.gov/vuln/detail/CVE-2026-47076), fixed in
-  hackney 4.0.1.
+  hackney 4.0.1. Current hackney 4 releases need OTP 27+ (their `quic`
+  dependency requires it); on older OTP, use HTTPoison 2.3 / hackney 1.21.
 
 ### Switching the default adapter
 

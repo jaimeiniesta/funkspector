@@ -20,6 +20,8 @@ jobs:
         - run: mix deps.compile
         - run: mix compile --warnings-as-errors
         - run: mix format --check-formatted
+        # The OTP < 27 test jobs use mix.legacy.lock; keep it free of unused entries too.
+        - run: cp mix.legacy.lock mix.lock && mix deps.get && mix deps.unlock --check-unused
 
   test:
     name: Test the app
@@ -49,9 +51,14 @@ jobs:
           path: |
             deps
             _build
-          key: ${{ runner.os }}-mix-${{ matrix.elixir }}-${{ matrix.otp }}-${{ hashFiles('**/mix.lock') }}
+          key: ${{ runner.os }}-mix-${{ matrix.elixir }}-${{ matrix.otp }}-${{ hashFiles('mix.lock', 'mix.legacy.lock') }}
           restore-keys: |
             ${{ runner.os }}-mix-
+
+      # hackney 4 pulls in quic, which needs OTP 27+. Below 27, test the other
+      # supported pair (httpoison 2.3 / hackney 1.21) from mix.legacy.lock.
+      - if: matrix.otp != '27'
+        run: cp mix.legacy.lock mix.lock
 
       - run: mix deps.get
       - run: mix deps.compile
