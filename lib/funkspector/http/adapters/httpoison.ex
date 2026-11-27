@@ -29,14 +29,13 @@ if Code.ensure_loaded?(HTTPoison) do
         Funkspector.resolve(url, %{adapter: Funkspector.HTTP.Adapters.HTTPoison})
 
     > #### Security note {: .warning}
-    > hackney 1.21 is affected by
+    > Funkspector accepts both `httpoison ~> 2.3` (hackney 1.21) and
+    > `httpoison ~> 3.0` (hackney 4.x). hackney 1.21 is affected by
     > [CVE-2026-47075](https://nvd.nist.gov/vuln/detail/CVE-2026-47075) (CRLF
     > injection / request splitting) and
     > [CVE-2026-47076](https://nvd.nist.gov/vuln/detail/CVE-2026-47076) (SSRF
-    > via URL normalization), both fixed in hackney 4.0.1. HTTPoison's
-    > `~> 1.21` constraint cannot reach that fix
-    > ([httpoison#501](https://github.com/edgurgel/httpoison/issues/501)), so
-    > prefer the default Req adapter for new integrations.
+    > via URL normalization), both fixed in hackney 4.0.1. Use HTTPoison 3 /
+    > hackney 4 if you select this adapter.
     """
 
     @behaviour Funkspector.HTTP.Adapter
