@@ -67,12 +67,22 @@ defmodule Funkspector.Mixfile do
     [
       # Default HTTP adapter (Finch/Mint, no hackney).
       {:req, "~> 0.5"},
-      # Opt-in HTTP adapter. Hackney is pinned to 1.21 until
-      # https://github.com/edgurgel/httpoison/issues/501 is fixed.
-      # Both are marked `optional: true` so downstream consumers that
-      # stick with the default Req adapter do not need to pull in hackney.
-      {:hackney, "~> 1.21.0", optional: true},
-      {:httpoison, "~> 2.3.0", optional: true},
+      # Opt-in HTTP adapter. Two stacks are accepted:
+      #
+      #   * httpoison 3.x + hackney 4.x (recommended): hackney 4 carries the
+      #     fixes for the 2026 hackney advisories (CVE-2026-47075, -47076 and
+      #     others), and HTTPoison 3.0 makes `ssl: [verify: :verify_none]`
+      #     work again, the regression reported in
+      #     https://github.com/edgurgel/httpoison/issues/501.
+      #   * httpoison 2.3 + hackney 1.21: the 1.6.0 stack, kept so existing
+      #     consumers are not forced to upgrade. hackney 1.21 is affected by
+      #     those advisories; hackney 1.22+ hit httpoison#501 under 2.x.
+      #
+      # Both are `optional: true`: their requirements only apply when the
+      # consuming app also depends on them, and apps that stick with the
+      # default Req adapter do not pull in hackney at all.
+      {:hackney, "~> 1.21 or ~> 4.0", optional: true},
+      {:httpoison, "~> 2.3 or ~> 3.0", optional: true},
       {:floki, "~> 0.37.0"},
       {:sweet_xml, "~> 0.7.5"},
       {:mock, "~> 0.3.9", only: :test},

@@ -17,10 +17,10 @@ defmodule Funkspector.HTTP.Adapter do
   Two built-in adapters ship with Funkspector:
 
     * `Funkspector.HTTP.Adapters.Req` (default) — uses Req on top of
-      Finch/Mint; not exposed to the hackney 1.x CVEs since hackney is not
-      involved.
+      Finch/Mint; hackney is not involved.
     * `Funkspector.HTTP.Adapters.HTTPoison` (opt-in) — wraps the
-      historical `HTTPoison`/`hackney 1.21` stack.
+      historical `HTTPoison`/`hackney` stack (HTTPoison 3 / hackney 4, or
+      HTTPoison 2.3 / hackney 1.21).
 
   Select an adapter through application config or per-call options:
 

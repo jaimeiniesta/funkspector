@@ -2,7 +2,19 @@
 
 All notable changes to Funkspector are documented in this file.
 
-## [2.0.0] - 2026-05-26
+## [Unreleased]
+
+### Added
+
+- `:body` option for `resolve/2` with the Req adapter: `:headers` reads only the status and headers, and `:stream` returns the body as an enumerable for the caller to consume. Streamed requests ask for an uncompressed body. The HTTPoison adapter returns `%Funkspector.Error{reason: :unsupported_body_mode}` for both.
+- `Funkspector.cancel/1` stops the download of a streamed body the caller won't read.
+- `:check_url` option: a function called with each URL before it is requested, the first one and every redirect target. `{:error, reason}` stops with `%Funkspector.Error{reason: {:blocked, reason}}`. Use it to refuse private addresses (SSRF).
+
+### Changed
+
+- **Every Req adapter download now reads the body chunk by chunk** and stops as soon as it passes `max_body_size`, which is on by default (100 MB). Before, the whole body was received and measured afterwards, so a huge or endless body could exhaust memory. The request still asks for `accept-encoding: gzip`, and `Funkspector.Resolver` now inflates it (within the same limit) instead of Req. Only `max_body_size: :infinity` keeps the old path.
+
+## [2.0.0](https://github.com/jaimeiniesta/funkspector/compare/842fe34...051a0f3) - 2026-11-27
 
 Pluggable HTTP adapter. Funkspector no longer hardcodes HTTPoison/hackney; instead it talks to an `Funkspector.HTTP.Adapter` behaviour with two adapters shipped in-tree.
 
@@ -15,28 +27,27 @@ Pluggable HTTP adapter. Funkspector no longer hardcodes HTTPoison/hackney; inste
 - App-wide adapter configuration via `config :funkspector, :http_adapter, …`.
 - `:insecure` option (default `false`) to disable TLS certificate verification per call, honored by both adapters.
 - `:max_body_size` option (default 100 MB) that bounds both the raw response body and gzip decompression; oversized responses return `%Funkspector.Error{reason: :body_too_large}`. Set `:infinity` to disable.
-- `:body` option for `resolve/2` with the Req adapter: `:headers` reads only the status and headers, and `:stream` returns the body as an enumerable for the caller to consume. Streamed requests ask for an uncompressed body. The HTTPoison adapter returns `%Funkspector.Error{reason: :unsupported_body_mode}` for both.
-- `Funkspector.cancel/1` stops the download of a streamed body the caller won't read.
-- `:check_url` option: a function called with each URL before it is requested, the first one and every redirect target. `{:error, reason}` stops with `%Funkspector.Error{reason: {:blocked, reason}}`. Use it to refuse private addresses (SSRF).
 - Mix aliases: `mix test.httpoison` (run the suite against the HTTPoison adapter) and `mix test.adapters` (run both back-to-back).
 
 ### Changed (breaking)
 
-- **Every Req adapter download now reads the body chunk by chunk** and stops as soon as it passes `max_body_size`, which is on by default (100 MB). Before, the whole body was received and measured afterwards, so a huge or endless body could exhaust memory. The request still asks for `accept-encoding: gzip`, and `Funkspector.Resolver` now inflates it (within the same limit) instead of Req. Only `max_body_size: :infinity` keeps the old path.
-
 - Errors are now `%Funkspector.Error{reason: atom, adapter: module}` instead of `%HTTPoison.Error{reason: atom, id: nil}`. The `:reason` atom (e.g. `:nxdomain`, `:timeout`, `:closed`) is unchanged, so most pattern matches need only a struct rename.
 - Non-2xx HTTP responses surface as `%Funkspector.Response{status_code: integer, headers: list, body: binary}` instead of `%HTTPoison.Response{}`.
 - Default HTTP transport is now Req. Set `config :funkspector, :http_adapter, Funkspector.HTTP.Adapters.HTTPoison` to keep the previous behavior.
-- `:httpoison` and `:hackney` are now `optional: true` deps. Add them to your own `mix.exs` if you select the HTTPoison adapter.
+- `:httpoison` and `:hackney` are now `optional: true` deps, accepting `~> 2.3 or ~> 3.0` and `~> 1.21 or ~> 4.0`. Add them to your own `mix.exs` if you select the HTTPoison adapter. Use HTTPoison 3 / hackney 4 where you can; current hackney 4 needs OTP 27+ (via `quic`), so on older OTP use HTTPoison 2.3 / hackney 1.21.
 - **TLS certificates are now verified by default** (both adapters). Pre-2.0 disabled verification (`hackney: [:insecure]`); pass `insecure: true` to restore that for hosts with broken/self-signed certificates. Note that `:basic_auth` credentials are sent over the connection, so the secure default matters.
 - Redirect chains exceeding the 5-hop limit now return `{:error, url, :too_many_redirects}` instead of `{:ok, url, <last 3xx response>}`.
 - A 3xx response with no usable `Location` header now returns an error tuple instead of raising; `Location`/`Content-Encoding` header lookups are case-insensitive across adapters.
 - The `page_scrape`/`sitemap_scrape`/`text_sitemap_scrape` error tuples report the original requested URL (not the post-redirect URL); `resolve/2` continues to report the URL that actually failed. `:basic_auth` is stripped when a redirect crosses origin.
 - Passing a non-binary `:contents` now returns `{:error, url, :invalid_contents}` instead of raising.
 
+### Fixed
+
+- HTTPoison adapter: `insecure: true` is now honored when an explicit `:ssl` list is set, including the Resolver's tlsv1.2 retry. HTTPoison turns `:ssl` into verifying hackney `:ssl_options` that override hackney's `:insecure` flag, so the adapter adds `verify: :verify_none` and an accept-all `verify_fun` (unless the caller set `:verify` in `:ssl`).
+
 ### Why
 
-hackney 4.0.1 ships fixes for a cluster of 2026 advisories; the two that affect the pinned hackney 1.21 are [CVE-2026-47075](https://nvd.nist.gov/vuln/detail/CVE-2026-47075) (CRLF injection / HTTP request splitting) and [CVE-2026-47076](https://nvd.nist.gov/vuln/detail/CVE-2026-47076) (SSRF via URL normalization). HTTPoison 2.3.0 is constrained to `hackney ~> 1.21` and changed body-fetch contracts prevent simply overriding ([httpoison#501](https://github.com/edgurgel/httpoison/issues/501)). Req does not depend on hackney and is unaffected.
+hackney 4.0.1 ships fixes for a cluster of 2026 advisories, including [CVE-2026-47075](https://nvd.nist.gov/vuln/detail/CVE-2026-47075) (CRLF injection / HTTP request splitting) and [CVE-2026-47076](https://nvd.nist.gov/vuln/detail/CVE-2026-47076) (SSRF via URL normalization), which affect hackney 1.21. Funkspector 1.6.0 pinned hackney to `~> 1.21.0` because of [httpoison#501](https://github.com/edgurgel/httpoison/issues/501) (`verify: :verify_none` ignored on hackney 1.22+ with HTTPoison 2.x). Req does not depend on hackney and is unaffected; HTTPoison 3.0 moves to hackney 4 and makes `verify_none` work again, so the HTTPoison adapter can use the fixed hackney too.
 
 ### Migration
 
@@ -54,7 +65,7 @@ To keep HTTPoison as the transport, add this to your `config/config.exs`:
 config :funkspector, :http_adapter, Funkspector.HTTP.Adapters.HTTPoison
 ```
 
-and declare HTTPoison + hackney in your own deps.
+and declare HTTPoison + hackney in your own deps, e.g. `{:httpoison, "~> 3.0"}`.
 
 ## [1.6.0](https://github.com/jaimeiniesta/funkspector/compare/940247c...842fe34) - 2025-11-20
 

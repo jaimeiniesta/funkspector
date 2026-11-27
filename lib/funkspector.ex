@@ -19,7 +19,8 @@ defmodule Funkspector do
 
     * `Funkspector.HTTP.Adapters.Req` (default) — Finch/Mint, no hackney.
     * `Funkspector.HTTP.Adapters.HTTPoison` — opt-in, wraps the historical
-      HTTPoison/hackney 1.21 stack.
+      HTTPoison/hackney stack (HTTPoison 3 / hackney 4, or HTTPoison 2.3 /
+      hackney 1.21).
 
   Select an adapter globally through application config:
 

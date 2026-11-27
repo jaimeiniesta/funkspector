@@ -51,6 +51,41 @@ defmodule Funkspector.HTTP.Adapters.HTTPoisonTest do
       assert hackney[:pool] == :default
     end
 
+    # With an explicit `:ssl` list HTTPoison builds verifying TLS options
+    # itself and they override hackney's `:insecure` flag, so the flag alone
+    # does not disable verification on the Resolver's tlsv1.2 retry.
+    test "adds verify: :verify_none to an explicit :ssl list when insecure: true" do
+      request_options =
+        captured_request_options("https://example.com", %{
+          insecure: true,
+          ssl: [versions: [:"tlsv1.2"]]
+        })
+
+      ssl = Keyword.fetch!(request_options, :ssl)
+      assert ssl[:verify] == :verify_none
+      assert ssl[:versions] == [:"tlsv1.2"]
+      # hackney 1.21 keeps its hostname verify_fun under verify_none.
+      assert {verify_fun, nil} = ssl[:verify_fun]
+      assert verify_fun.(:cert, {:bad_cert, :cert_expired}, :state) == {:valid, :state}
+    end
+
+    test "keeps an explicit :ssl verify setting over insecure: true" do
+      request_options =
+        captured_request_options("https://example.com", %{
+          insecure: true,
+          ssl: [verify: :verify_peer]
+        })
+
+      assert Keyword.fetch!(request_options, :ssl)[:verify] == :verify_peer
+    end
+
+    test "leaves an explicit :ssl list alone when not insecure" do
+      request_options =
+        captured_request_options("https://example.com", %{ssl: [versions: [:"tlsv1.2"]]})
+
+      assert Keyword.fetch!(request_options, :ssl) == [versions: [:"tlsv1.2"]]
+    end
+
     test "never forwards the raw :insecure key to HTTPoison" do
       request_options = captured_request_options("https://example.com", %{insecure: true})
 
