@@ -74,8 +74,8 @@ Funkspector (public API) → Resolver → Document → Scraper
 
 ### Key Dependencies
 
-- `req` — default HTTP client (Finch/Mint). No hackney; the Req adapter avoids the [httpoison#501](https://github.com/edgurgel/httpoison/issues/501) constraint that caps hackney at ~> 1.21.
-- `httpoison` / `hackney` — opt-in HTTP client. Declared as `optional: true`; required only when selecting `Funkspector.HTTP.Adapters.HTTPoison`.
+- `req` — default HTTP client (Finch/Mint). No hackney.
+- `httpoison` / `hackney` — opt-in HTTP client. Declared as `optional: true` with `~> 2.3 or ~> 3.0` / `~> 1.21 or ~> 4.0`; required only when selecting `Funkspector.HTTP.Adapters.HTTPoison`. Mix still enforces an optional dep's requirement when the consuming app also depends on it, so keep both ranges wide. `mix.lock` tracks HTTPoison 3 / hackney 4. hackney 4 pulls in `quic`, which needs OTP 27+, so CI jobs on OTP < 27 copy `mix.legacy.lock` (HTTPoison 2.3 / hackney 1.21) over `mix.lock` first. When bumping a dep shared by both, update both lockfiles.
 - `floki` — HTML parsing
 - `sweet_xml` — XML/XPath parsing
 - `mock` (test only) — mocks the active HTTP adapter in tests

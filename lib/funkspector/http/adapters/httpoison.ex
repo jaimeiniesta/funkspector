@@ -29,14 +29,13 @@ if Code.ensure_loaded?(HTTPoison) do
         Funkspector.resolve(url, %{adapter: Funkspector.HTTP.Adapters.HTTPoison})
 
     > #### Security note {: .warning}
-    > hackney 1.21 is affected by
+    > Funkspector accepts both `httpoison ~> 2.3` (hackney 1.21) and
+    > `httpoison ~> 3.0` (hackney 4.x). hackney 1.21 is affected by
     > [CVE-2026-47075](https://nvd.nist.gov/vuln/detail/CVE-2026-47075) (CRLF
     > injection / request splitting) and
     > [CVE-2026-47076](https://nvd.nist.gov/vuln/detail/CVE-2026-47076) (SSRF
-    > via URL normalization), both fixed in hackney 4.0.1. HTTPoison's
-    > `~> 1.21` constraint cannot reach that fix
-    > ([httpoison#501](https://github.com/edgurgel/httpoison/issues/501)), so
-    > prefer the default Req adapter for new integrations.
+    > via URL normalization), both fixed in hackney 4.0.1. Use HTTPoison 3 /
+    > hackney 4 if you select this adapter.
     """
 
     @behaviour Funkspector.HTTP.Adapter
@@ -104,12 +103,40 @@ if Code.ensure_loaded?(HTTPoison) do
     # `insecure: true` disables hackney's certificate verification, mirroring the
     # Req adapter. It is folded into the `:hackney` option list (hackney's native
     # `:insecure` flag) so explicit `:hackney` opts the caller passed are kept.
+    #
+    # An explicit `:ssl` list (e.g. the Resolver's tlsv1.2 retry) needs
+    # `verify: :verify_none` too: HTTPoison turns `:ssl` into hackney
+    # `:ssl_options` with verification on, and those win over the `:insecure`
+    # flag. hackney 1.21 also keeps its hostname-checking `verify_fun`, which
+    # OTP runs even under `verify_none` (httpoison#501), so an accept-all
+    # `verify_fun` goes with it, as HTTPoison 3 does. A `:verify` the caller set
+    # in `:ssl` is kept, as in the Req adapter.
     defp translate_insecure(%{insecure: true} = options) do
       hackney = Enum.uniq([:insecure | Map.get(options, :hackney, [])])
-      Map.put(options, :hackney, hackney)
+
+      options
+      |> Map.put(:hackney, hackney)
+      |> insecure_ssl()
     end
 
     defp translate_insecure(options), do: options
+
+    defp insecure_ssl(%{ssl: ssl} = options) when is_list(ssl) and ssl != [] do
+      if Keyword.has_key?(ssl, :verify) do
+        options
+      else
+        ssl =
+          ssl
+          |> Keyword.put(:verify, :verify_none)
+          |> Keyword.put_new(:verify_fun, {&accept_any_cert/3, nil})
+
+        Map.put(options, :ssl, ssl)
+      end
+    end
+
+    defp insecure_ssl(options), do: options
+
+    defp accept_any_cert(_cert, _event, state), do: {:valid, state}
 
     defp request_headers(options) do
       headers = [{"User-Agent", options[:user_agent]}]

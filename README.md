@@ -163,16 +163,15 @@ The `reason` is one of:
 Funkspector 2.0 ships with two HTTP adapters:
 
 - `Funkspector.HTTP.Adapters.Req` (**default**) — backed by
-  [Req](https://hex.pm/packages/req)/Finch/Mint. No `hackney` dependency, so
-  it is unaffected by the hackney 1.21 issues
-  ([CVE-2026-47075](https://nvd.nist.gov/vuln/detail/CVE-2026-47075),
-  [CVE-2026-47076](https://nvd.nist.gov/vuln/detail/CVE-2026-47076)) whose fix
-  in hackney 4.0.1 is blocked for HTTPoison by
-  [httpoison#501](https://github.com/edgurgel/httpoison/issues/501).
+  [Req](https://hex.pm/packages/req)/Finch/Mint. No `hackney` dependency.
 - `Funkspector.HTTP.Adapters.HTTPoison` — backed by
   [HTTPoison](https://hex.pm/packages/httpoison)/hackney. Opt-in for users who
-  want to preserve the pre-2.0 transport; note it carries the hackney 1.21
-  CVEs above.
+  want to preserve the pre-2.0 transport. Works with HTTPoison 3 / hackney 4
+  (recommended) and HTTPoison 2.3 / hackney 1.21. hackney 1.21 is affected by
+  [CVE-2026-47075](https://nvd.nist.gov/vuln/detail/CVE-2026-47075) and
+  [CVE-2026-47076](https://nvd.nist.gov/vuln/detail/CVE-2026-47076), fixed in
+  hackney 4.0.1. Current hackney 4 releases need OTP 27+ (their `quic`
+  dependency requires it); on older OTP, use HTTPoison 2.3 / hackney 1.21.
 
 ### Switching the default adapter
 
@@ -186,7 +185,7 @@ You'll also need to declare `httpoison` (and `hackney`) in your own
 `mix.exs` deps since Funkspector marks them `optional: true`:
 
 ```elixir
-{:httpoison, "~> 2.3"}
+{:httpoison, "~> 3.0"}
 ```
 
 ### Per-call override

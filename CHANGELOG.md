@@ -2,6 +2,17 @@
 
 All notable changes to Funkspector are documented in this file.
 
+## [2.0.1] - Unreleased
+
+Allow HTTPoison 3 / hackney 4 for the opt-in HTTPoison adapter.
+
+- Widen the optional deps to `{:hackney, "~> 1.21 or ~> 4.0"}` and `{:httpoison, "~> 2.3 or ~> 3.0"}`. Mix enforces an optional dep's requirement when the consuming app also depends on it, so the 2.0.0 pins (`~> 1.21.0` / `~> 2.3.0`) kept apps from taking hackney 4 even when they use the default Req adapter.
+- hackney 4 fixes [CVE-2026-47075](https://nvd.nist.gov/vuln/detail/CVE-2026-47075), [CVE-2026-47076](https://nvd.nist.gov/vuln/detail/CVE-2026-47076) and the other 2026 hackney advisories, and pulls idna 8 instead of 6.
+- HTTPoison 3.0.0 makes `ssl: [verify: :verify_none]` disable verification again, the regression behind [httpoison#501](https://github.com/edgurgel/httpoison/issues/501) that forced the hackney 1.21 pin. The issue is still open upstream, but the fix shipped in 3.0.0.
+- HTTPoison 2.3 / hackney 1.21 still works; `mix.lock` now tracks HTTPoison 3.0.1 / hackney 4.12.4. Current hackney 4 needs OTP 27+ (via `quic`), so on older OTP the HTTPoison adapter needs HTTPoison 2.3 / hackney 1.21. CI tests that pair on OTP 25/26 from `mix.legacy.lock`. The Req adapter does not use hackney and is unaffected.
+- Fix: with the HTTPoison adapter, `insecure: true` was ignored when an explicit `:ssl` list was set, which includes the Resolver's tlsv1.2 retry, so verification stayed on. The adapter now adds `verify: :verify_none` and an accept-all `verify_fun` to `:ssl` (unless the caller set `:verify` there), on both hackney 1.21 and 4. The Req adapter was not affected.
+- No API changes. hackney 4 keeps `follow_redirect` off by default, so `Funkspector.Resolver` still owns redirects, and `insecure: true` still maps to hackney's `:insecure` flag.
+
 ## [2.0.0] - 2026-05-26
 
 Pluggable HTTP adapter. Funkspector no longer hardcodes HTTPoison/hackney; instead it talks to an `Funkspector.HTTP.Adapter` behaviour with two adapters shipped in-tree.

@@ -52,6 +52,13 @@ defmodule Funkspector.TLSIntegrationTest do
     assert {:ok, ^url, %{status_code: 200}} = Funkspector.resolve(url, %{insecure: true})
   end
 
+  test "insecure: true still applies with an explicit :ssl override (the SSL retry path)" do
+    url = badssl_expired()
+
+    assert {:ok, ^url, %{status_code: 200}} =
+             Funkspector.resolve(url, %{insecure: true, ssl: [versions: [:"tlsv1.2"]]})
+  end
+
   test "honors an explicit :ssl override (same code path the SSL retry uses)" do
     # The retry logic in Funkspector.Resolver merges %{ssl: [versions: [:"tlsv1.2"]]}
     # into the options on TLS errors. Setting it manually exercises that exact
